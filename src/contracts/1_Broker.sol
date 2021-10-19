@@ -74,7 +74,7 @@ contract Broker {
     }
     
     function sendMoney(address payable recipientAddress) public payable {
-        (bool sent, bytes memory data) = recipientAddress.call{value: msg.value}("");
+        (bool sent, ) = recipientAddress.call{value: msg.value}("");
         
         require(sent, "Failed to send Ether.");
     }
