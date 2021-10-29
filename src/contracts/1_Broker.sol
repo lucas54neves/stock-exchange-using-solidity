@@ -1,6 +1,10 @@
 pragma solidity ^0.8.3;
 
 contract Broker {
+    address owner;
+    string brokerName;
+    string brokerRegisteredNumber;
+    
     struct User {
         address userAddress;
         string name;
@@ -8,21 +12,26 @@ contract Broker {
         bool active;
     }
     
+    struct Quota {
+        string assetCode;
+        uint256 quotaCode;
+        address owner;
+    }
+    
     struct Asset {
         string code;
         string name;
         bool active;
+        uint256 numberOfQuotas;
     }
-    
-    address owner;
-    string brokerName;
-    string brokerRegisteredNumber;
     
     address[] userAddresses;
     mapping(address => User) private addressUserMapping;
     
     string[] assetCodes;
     mapping(string => Asset) private codeAssetMapping;
+    
+    mapping(string => Quota) private assetQuotaMapping;
     
     constructor() {
         owner = msg.sender;
@@ -57,7 +66,7 @@ contract Broker {
         return users;
     }
     
-    function addAsset(string memory code, string memory name) public {
+    function addAsset(string memory code, string memory name, uint256  numberOfQuotas) public {
         require(msg.sender == owner, 'Only the owner can add assets');
         
         require(!codeAssetMapping[code].active, 'Asset already exists');
@@ -65,12 +74,39 @@ contract Broker {
         Asset memory asset = Asset({
             code: code,
             name: name,
-            active: true
+            active: true,
+            numberOfQuotas: numberOfQuotas
         });
         
         codeAssetMapping[code] = asset;
         
         assetCodes.push(code);
+        
+        for (uint i = 1; i <= numberOfQuotas; i++) {
+            Quota memory quota = Quota({
+                assetCode: code,
+                quotaCode: i,
+                owner: msg.sender
+            });
+            
+            string memory quotaCode = string(abi.encodePacked(code, i));
+            
+            assetQuotaMapping[quotaCode] = quota;
+        }
+    }
+    
+    function getAssetQuotas(string memory assetCode) public view returns (Quota[] memory) {
+        Asset memory asset = codeAssetMapping[assetCode];
+        
+        Quota[] memory quotas = new Quota[](asset.numberOfQuotas);
+        
+        for (uint i = 0; i < asset.numberOfQuotas; i++) {
+            string memory quotaCode = string(abi.encodePacked(asset.code, i));
+            
+            quotas[i] = assetQuotaMapping[quotaCode];
+        }
+        
+        return quotas;
     }
     
     function sendMoney(address payable recipientAddress) public payable {
