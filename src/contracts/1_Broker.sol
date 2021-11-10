@@ -16,6 +16,7 @@ contract Broker {
         string assetCode;
         uint256 quotaCode;
         address owner;
+        bool active;
     }
     
     struct Asset {
@@ -25,6 +26,15 @@ contract Broker {
         uint256 numberOfQuotas;
     }
     
+    struct SaleOrder {
+        string quotaCode;
+        uint value;
+        uint time;
+        address seller;
+        bool executed;
+        string assetCode;
+    }
+    
     address[] userAddresses;
     mapping(address => User) private addressUserMapping;
     
@@ -32,6 +42,9 @@ contract Broker {
     mapping(string => Asset) private codeAssetMapping;
     
     mapping(string => Quota) private assetQuotaMapping;
+    
+    string[] salesOrderCodes;
+    mapping(string => SaleOrder) private salesOrderMapping;
     
     constructor() {
         owner = msg.sender;
@@ -86,7 +99,8 @@ contract Broker {
             Quota memory quota = Quota({
                 assetCode: code,
                 quotaCode: i,
-                owner: msg.sender
+                owner: msg.sender,
+                active: true
             });
             
             string memory quotaCode = string(abi.encodePacked(code, i));
@@ -114,4 +128,67 @@ contract Broker {
         
         require(sent, "Failed to send Ether.");
     }
+    
+    function putForSale(string memory quotaCode) public payable {
+        Quota memory quota = assetQuotaMapping[quotaCode];
+        
+        require(!quota.active, 'Quota does not exist');
+        
+        require(msg.sender == quota.owner, "Only the asset's owner can sell the asset");
+        
+        SaleOrder memory order = SaleOrder({
+            quotaCode: quotaCode,
+            value: msg.value,
+            time: block.timestamp,
+            seller: msg.sender,
+            executed: false,
+            assetCode: quota.assetCode
+        });
+        
+        salesOrderMapping[quotaCode] = order;
+        
+        salesOrderCodes.push(quotaCode);
+    }
+    
+    function compareStrings(string memory a, string memory b) private view returns (bool) {
+        return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
+    }
+    
+    function getSaleOrderByAsset(string memory assetCode) private returns (SaleOrder memory) {
+        uint256 index = salesOrderCodes.length + 1;
+        
+        for (uint i = 0; i < salesOrderCodes.length; i++) {
+            string memory currentQuotaCode = salesOrderCodes[i];
+            
+            SaleOrder memory currentSaleOrder = salesOrderMapping[currentQuotaCode];
+            
+            if (compareStrings(currentSaleOrder.assetCode, assetCode)) {
+                if (index == salesOrderCodes.length + 1) {
+                    index = i;
+                } else {
+                    string memory previousQuotaCode = salesOrderCodes[i];
+                    
+                    SaleOrder memory previousSaleOrder = salesOrderMapping[previousQuotaCode];
+                    
+                    if (currentSaleOrder.value < previousSaleOrder.value) {
+                        index = i;
+                    }
+                }
+            }
+        }
+        
+        require(!(index == salesOrderCodes.length + 1), 'No sales orders found');
+        
+        string memory quotaCode = salesOrderCodes[index];
+                    
+        return salesOrderMapping[quotaCode];
+    }
+    
+    // function buyAsset(string memory assetCode) public returns (bool) {
+    //     try this.getSaleOrderByAsset(assetCode) private returns (SaleOrder memory saleOrder, bool success) {
+    //         return (saleOrder, true);
+    //     } catch {
+    //         return false;
+    //     }
+    // }
 }
