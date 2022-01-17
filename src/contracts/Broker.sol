@@ -151,11 +151,11 @@ contract Broker {
         salesOrderCodes.push(quotaCode);
     }
     
-    function compareStrings(string memory a, string memory b) private view returns (bool) {
+    function compareStrings(string memory a, string memory b) private pure returns (bool) {
         return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
     }
     
-    function getSaleOrderByAsset(string memory assetCode) private returns (SaleOrder memory) {
+    function getSaleOrderByAsset(string memory assetCode) private view returns (SaleOrder memory) {
         uint256 index = salesOrderCodes.length + 1;
         
         for (uint i = 0; i < salesOrderCodes.length; i++) {
