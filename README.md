@@ -8,5 +8,5 @@ All commands must be run in the src directory.
 ### Automated tests
 
 ```
-truffle tests
+truffle test
 ```
