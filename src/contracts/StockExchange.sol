@@ -30,8 +30,12 @@ contract StockExchange {
     Transaction[] private transactionsArray;
     mapping(uint256 => Transaction) private transactionsMapping;
 
+    function getSalesOrdersArray() public view returns (Order[] memory) {
+        return salesOrdersArray;
+    }
+
     function compareAssets(string memory asset1, string memory asset2)
-        private
+        public
         pure
         returns (bool)
     {
