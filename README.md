@@ -16,7 +16,7 @@ truffle test
 
 ### 0.1.0
 
-[ ] Orders CRUD;
-[ ] Transactions CRUD;
-[x] Check orders conflicts;
-[ ] All automated tests.
+- [ ] Orders CRUD;
+- [ ] Transactions CRUD;
+- [x] Check orders conflicts;
+- [ ] All automated tests.
