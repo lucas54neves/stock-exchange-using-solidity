@@ -1,5 +1,5 @@
-const Broker = artifacts.require("Broker");
+const StockExchange = artifacts.require("StockExchange");
 
 module.exports = function (deployer) {
-  deployer.deploy(Broker);
+  deployer.deploy(StockExchange);
 };
