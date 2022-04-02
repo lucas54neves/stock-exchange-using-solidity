@@ -34,6 +34,14 @@ contract StockExchange {
         return salesOrdersArray;
     }
 
+    function getPurchaseOrdersArray() public view returns (Order[] memory) {
+        return purchaseOrdersArray;
+    }
+
+    function getTransactions() public view returns (Transaction[] memory) {
+        return transactionsArray;
+    }
+
     function compareAssets(string memory asset1, string memory asset2)
         public
         pure
@@ -128,6 +136,10 @@ contract StockExchange {
         returns (uint256)
     {
         return orders.length;
+    }
+
+    function numberOfOrders() public view returns (uint256) {
+        return transactionsArray.length;
     }
 
     function addOrder(
