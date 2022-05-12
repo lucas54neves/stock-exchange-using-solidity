@@ -21,26 +21,14 @@ contract StockExchange {
         uint256 numberOfShares;
     }
 
-    Order[] private salesOrdersArray;
-    mapping(uint256 => Order) private salesOrdersMapping;
+    mapping(string => Order[]) private salesOrdersByAssetCodeMapping;
+    uint256 salesOrdersByAssetCounter;
 
-    Order[] private purchaseOrdersArray;
-    mapping(uint256 => Order) private purchaseOrdersMapping;
+    mapping(string => Order[]) private purchaseOrdersByAssetCodeMapping;
+    uint256 purchaseOrdersByAssetCounter;
 
-    Transaction[] private transactionsArray;
-    mapping(uint256 => Transaction) private transactionsMapping;
-
-    function getSalesOrdersArray() public view returns (Order[] memory) {
-        return salesOrdersArray;
-    }
-
-    function getPurchaseOrdersArray() public view returns (Order[] memory) {
-        return purchaseOrdersArray;
-    }
-
-    function getTransactions() public view returns (Transaction[] memory) {
-        return transactionsArray;
-    }
+    mapping(string => Transaction[]) private transactionsByAssetCodeMapping;
+    uint256 transactionsByAssetCounter;
 
     function compareAssets(string memory asset1, string memory asset2)
         public
@@ -52,6 +40,7 @@ contract StockExchange {
     }
 
     function createTransaction(
+        uint256 transactionIndex,
         address seller,
         address buyer,
         string memory assetCode,
@@ -60,7 +49,7 @@ contract StockExchange {
     ) public view returns (Transaction memory) {
         return
             Transaction({
-                index: transactionsArray.length + 1,
+                index: transactionIndex,
                 seller: seller,
                 buyer: buyer,
                 assetCode: assetCode,
@@ -68,6 +57,47 @@ contract StockExchange {
                 createdAt: block.timestamp, // require view-type function,
                 numberOfShares: numberOfShares
             });
+    }
+
+    function returnTransactions(string memory assetCode)
+        public
+        view
+        returns (Transaction[] memory)
+    {
+        return transactionsByAssetCodeMapping[assetCode];
+    }
+
+    function returnOrders(bool isSale, string memory assetCode)
+        public
+        view
+        returns (Order[] memory)
+    {
+        if (isSale) {
+            return salesOrdersByAssetCodeMapping[assetCode];
+        }
+
+        return purchaseOrdersByAssetCodeMapping[assetCode];
+    }
+
+    function addTransaction(
+        address seller,
+        address buyer,
+        string memory assetCode,
+        uint256 pricePerShare,
+        uint256 numberOfShares
+    ) public {
+        transactionsByAssetCounter += 1;
+
+        Transaction memory transaction = createTransaction(
+            transactionsByAssetCounter,
+            seller,
+            buyer,
+            assetCode,
+            pricePerShare,
+            numberOfShares
+        );
+
+        transactionsByAssetCodeMapping[transaction.assetCode].push(transaction);
     }
 
     function createOrder(
@@ -90,23 +120,7 @@ contract StockExchange {
             });
     }
 
-    function addSaleOrder(Order memory order) public {
-        salesOrdersArray.push(order);
-        salesOrdersMapping[order.index] = order;
-    }
-
-    function addPurchaseOrder(Order memory order) public {
-        purchaseOrdersArray.push(order);
-        purchaseOrdersMapping[order.index] = order;
-    }
-
-    function addTransaction(Transaction memory transaction) public {
-        transactionsArray.push(transaction);
-        transactionsMapping[transaction.index] = transaction;
-    }
-
     function insertOrder(
-        Order[] memory orders,
         address userAddress,
         string memory assetCode,
         uint256 targetPricePerShare,
@@ -114,19 +128,32 @@ contract StockExchange {
         bool isSale,
         bool acceptsFragmenting
     ) public {
-        Order memory order = createOrder(
-            numberOfOrders(orders) + 1,
-            userAddress,
-            assetCode,
-            targetPricePerShare,
-            numberOfShares,
-            acceptsFragmenting
-        );
-
         if (isSale) {
-            addSaleOrder(order);
+            salesOrdersByAssetCounter += 1;
+
+            Order memory order = createOrder(
+                salesOrdersByAssetCounter,
+                userAddress,
+                assetCode,
+                targetPricePerShare,
+                numberOfShares,
+                acceptsFragmenting
+            );
+
+            salesOrdersByAssetCodeMapping[assetCode].push(order);
         } else {
-            addPurchaseOrder(order);
+            purchaseOrdersByAssetCounter += 1;
+
+            Order memory order = createOrder(
+                purchaseOrdersByAssetCounter,
+                userAddress,
+                assetCode,
+                targetPricePerShare,
+                numberOfShares,
+                acceptsFragmenting
+            );
+
+            purchaseOrdersByAssetCodeMapping[assetCode].push(order);
         }
     }
 
@@ -136,10 +163,6 @@ contract StockExchange {
         returns (uint256)
     {
         return orders.length;
-    }
-
-    function numberOfOrders() public view returns (uint256) {
-        return transactionsArray.length;
     }
 
     function addOrder(
@@ -153,12 +176,12 @@ contract StockExchange {
         Order[] storage orders;
 
         if (isSale) {
-            orders = purchaseOrdersArray;
+            orders = purchaseOrdersByAssetCodeMapping[assetCode];
         } else {
-            orders = salesOrdersArray;
+            orders = salesOrdersByAssetCodeMapping[assetCode];
         }
 
-        uint256 size = numberOfOrders(orders);
+        uint256 size = orders.length;
 
         if (size > 0) {
             for (uint256 i = 0; i < size; i++) {
@@ -172,7 +195,10 @@ contract StockExchange {
                         numberOfShares >= orders[i].numberOfShares
                     )
                 ) {
+                    transactionsByAssetCounter += 1;
+
                     createTransaction(
+                        transactionsByAssetCounter,
                         userAddress,
                         orders[i].userAddress,
                         assetCode,
@@ -180,15 +206,10 @@ contract StockExchange {
                         numberOfShares
                     );
 
-                    purchaseOrdersMapping[orders[i].index]
-                        .numberOfShares -= numberOfShares;
+                    orders[i].numberOfShares -= numberOfShares;
 
-                    if (
-                        purchaseOrdersMapping[orders[i].index].numberOfShares ==
-                        0
-                    ) {
+                    if (orders[i].numberOfShares == 0) {
                         delete orders[i];
-                        delete purchaseOrdersMapping[orders[i].index];
                     }
 
                     return true;
@@ -204,7 +225,10 @@ contract StockExchange {
                         numberOfShares >= orders[i].numberOfShares
                     )
                 ) {
+                    transactionsByAssetCounter += 1;
+
                     createTransaction(
+                        transactionsByAssetCounter,
                         orders[i].userAddress,
                         userAddress,
                         assetCode,
@@ -212,14 +236,10 @@ contract StockExchange {
                         numberOfShares
                     );
 
-                    salesOrdersMapping[orders[i].index]
-                        .numberOfShares -= numberOfShares;
+                    orders[i].numberOfShares -= numberOfShares;
 
-                    if (
-                        salesOrdersMapping[orders[i].index].numberOfShares == 0
-                    ) {
+                    if (orders[i].numberOfShares == 0) {
                         delete orders[i];
-                        delete salesOrdersMapping[orders[i].index];
                     }
 
                     return true;
@@ -228,7 +248,6 @@ contract StockExchange {
         }
 
         insertOrder(
-            orders,
             userAddress,
             assetCode,
             targetPricePerShare,
