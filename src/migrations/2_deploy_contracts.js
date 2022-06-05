@@ -1,7 +1,5 @@
-const StockExchange = artifacts.require("StockExchange");
-const LinkedListOfOrders = artifacts.require("LinkedListOfOrders");
+const Exchange = artifacts.require("Exchange");
 
 module.exports = function (deployer) {
-  deployer.deploy(StockExchange);
-  deployer.deploy(LinkedListOfOrders);
+  deployer.deploy(Exchange);
 };
