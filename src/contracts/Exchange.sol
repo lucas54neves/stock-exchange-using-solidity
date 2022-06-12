@@ -254,7 +254,8 @@ contract Exchange {
     }
 
     function returnSaleOrders() public view returns (Order[] memory) {
-        Order[] memory _orders = new Order[](numberOfSaleOrders);
+        Order[] memory _orders;
+        // Order[] memory _orders = new Order[](numberOfSaleOrders);
         uint256 orderIndex = saleOrdersMapping[0];
         uint256 i = 0;
 
