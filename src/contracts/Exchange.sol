@@ -27,6 +27,7 @@ contract Exchange {
 
     Order[] private orders;
     Transaction[] private transactions;
+    string[] private assets;
 
     mapping(uint256 => uint256) private saleOrdersMapping;
     mapping(uint256 => uint256) private purchasedOrdersMapping;
@@ -105,12 +106,20 @@ contract Exchange {
         transactions.push(transaction);
     }
 
+    function addAsset(string memory asset) public {
+        assets.push(asset);
+    }
+
     function returnOrders() public view returns (Order[] memory) {
         return orders;
     }
 
     function returnTransactions() public view returns (Transaction[] memory) {
         return transactions;
+    }
+
+    function returnAssets () public view returns (string[] memory) {
+        return assets;
     }
 
     function checkTransactionConflict(
@@ -254,8 +263,7 @@ contract Exchange {
     }
 
     function returnSaleOrders() public view returns (Order[] memory) {
-        Order[] memory _orders;
-        // Order[] memory _orders = new Order[](numberOfSaleOrders);
+        Order[] memory _orders = new Order[](numberOfSaleOrders);
         uint256 orderIndex = saleOrdersMapping[0];
         uint256 i = 0;
 
@@ -285,4 +293,6 @@ contract Exchange {
 
         return _orders;
     }
+
+    function realizeOperationOfCreationOfTransaction() public {}
 }
