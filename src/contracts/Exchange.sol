@@ -11,6 +11,7 @@ contract Exchange {
         uint256 value;
         uint256 numberOfShares;
         bool acceptsFragmenting;
+        bool isActive;
     }
 
     struct Transaction {
@@ -39,6 +40,14 @@ contract Exchange {
     // constructor() {
     // }
 
+    function returnOrderByOrderIndex(uint256 orderIndex) private view returns (Order memory) {
+        return orders[orderIndex - 1];
+    }
+
+    function returnPositionOfOrderInArray(uint256 orderIndex) private pure returns (uint256) {
+        return orderIndex - 1;
+    }
+
     function compareAssets(string memory asset1, string memory asset2)
         public
         pure
@@ -66,12 +75,12 @@ contract Exchange {
                 value: value,
                 numberOfShares: numberOfShares,
                 createdAt: block.timestamp, // require view-type function
-                acceptsFragmenting: acceptsFragmenting
+                acceptsFragmenting: acceptsFragmenting,
+                isActive: true
             });
     }
 
     function createTransaction(
-        uint256 transactionIndex,
         address seller,
         address buyer,
         string memory asset,
@@ -82,7 +91,7 @@ contract Exchange {
     ) public view returns (Transaction memory) {
         return
             Transaction({
-                index: transactionIndex,
+                index: transactions.length + 1,
                 seller: seller,
                 buyer: buyer,
                 asset: asset,
@@ -282,11 +291,13 @@ contract Exchange {
         uint256 i = 0;
 
         while (orderIndex > 0) {
-            _orders[i] = orders[orderIndex - 1];
+            if (returnOrderByOrderIndex(orderIndex).isActive) {
+                _orders[i] = returnOrderByOrderIndex(orderIndex);
+
+                i += 1;
+            }
 
             orderIndex = saleOrdersMappingByAssets[asset][orderIndex];
-
-            i += 1;
         }
 
         return _orders;
@@ -298,19 +309,46 @@ contract Exchange {
         uint256 i = 0;
 
         while (orderIndex > 0) {
-            _orders[i] = orders[orderIndex - 1];
+            if (returnOrderByOrderIndex(orderIndex).isActive) {
+                _orders[i] = returnOrderByOrderIndex(orderIndex);
+
+                i += 1;
+            }
 
             orderIndex = purchasedOrdersMappingByAssets[asset][orderIndex];
 
-            i += 1;
         }
 
         return _orders;
     }
 
-    // function realizeOperationOfCreationOfTransaction() public {
-    //     for (uint256 i = 0; i < assets.length; i++) {
-    //         string memory asset = assets[i];
-    //     }
-    // }
+    function realizeOperationOfCreationOfTransaction() public {
+        for (uint256 i = 0; i < assets.length; i++) {
+            string memory asset = assets[i];
+
+            Order[] memory saleOrders = returnSaleOrders(asset);
+            Order[] memory purchasedOrders = returnPurchasedOrders(asset);
+
+            uint256 ordersSize = saleOrders.length > purchasedOrders.length ? purchasedOrders.length : saleOrders.length;
+
+            for (uint256 j = 0; j < ordersSize; j++) {
+                Order memory saleOrder = saleOrders[j];
+                Order memory purchasedOrder = purchasedOrders[j];
+
+                if (saleOrder.value == purchasedOrder.value) {
+                    uint256 numberOfShares = saleOrder.numberOfShares > purchasedOrder.numberOfShares ? purchasedOrder.numberOfShares : saleOrder.numberOfShares;
+
+                    Transaction memory transaction = createTransaction(saleOrder.userAddress, purchasedOrder.userAddress, asset, saleOrder.value, numberOfShares, saleOrder.index, purchasedOrder.index);
+                    
+                    addTransaction(transaction);
+
+                    saleOrders[returnPositionOfOrderInArray(saleOrder.index)].isActive = false;
+                    purchasedOrders[returnPositionOfOrderInArray(purchasedOrder.index)].isActive = false;
+
+                    numberOfSaleOrdersByAssets[asset] -= 1;
+                    numberOfPurchasedOrdersByAssets[asset] -= 1;
+                }
+            }
+        }
+    }
 }
