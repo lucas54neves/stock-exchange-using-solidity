@@ -1,5 +1,13 @@
 const Exchange = artifacts.require("./Exchange.sol");
 
+function showOrdersByAsset(asset, orders) {
+    console.log(`Asset: ${asset}`);
+
+    for (let i = 0; i < orders.length; i++) {
+        console.log(`${i + 1} ${orders[i].value}`);
+    }
+}
+
 contract("Exchange", (accounts) => {
     const creatorAddress = accounts[0];
 
@@ -19,7 +27,10 @@ contract("Exchange", (accounts) => {
 
         assert.equal(sameAssets, true);
 
-        const differentAssets = await this.exchange.compareAssets("PETRO", "VALE");
+        const differentAssets = await this.exchange.compareAssets(
+            "PETRO",
+            "VALE"
+        );
 
         assert.equal(differentAssets, false);
     });
@@ -29,7 +40,7 @@ contract("Exchange", (accounts) => {
             index: 45,
             isSale: false,
             userAddress: accounts[1],
-            assetCode: "VALE",
+            asset: "VALE",
             value: 1235,
             numberOfShares: 4,
             acceptsFragmenting: true,
@@ -39,7 +50,7 @@ contract("Exchange", (accounts) => {
             orderData.index,
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             orderData.value,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
@@ -48,7 +59,7 @@ contract("Exchange", (accounts) => {
         assert.equal(orderData.index, order.index);
         assert.equal(orderData.isSale, order.isSale);
         assert.equal(orderData.userAddress, order.userAddress);
-        assert.equal(orderData.assetCode, order.assetCode);
+        assert.equal(orderData.asset, order.asset);
         assert.equal(orderData.value, order.value);
         assert.equal(orderData.numberOfShares, order.numberOfShares);
         assert.equal(orderData.acceptsFragmenting, order.acceptsFragmenting);
@@ -59,7 +70,7 @@ contract("Exchange", (accounts) => {
             index: 14,
             seller: accounts[0],
             buyer: accounts[2],
-            assetCode: "ITAUSA",
+            asset: "ITAUSA",
             value: 22,
             numberOfShares: 1,
             saleOrderIndex: 4,
@@ -70,7 +81,7 @@ contract("Exchange", (accounts) => {
             transactionData.index,
             transactionData.seller,
             transactionData.buyer,
-            transactionData.assetCode,
+            transactionData.asset,
             transactionData.value,
             transactionData.numberOfShares,
             transactionData.saleOrderIndex,
@@ -80,7 +91,7 @@ contract("Exchange", (accounts) => {
         assert.equal(transactionData.index, transaction.index);
         assert.equal(transactionData.seller, transaction.seller);
         assert.equal(transactionData.buyer, transaction.buyer);
-        assert.equal(transactionData.assetCode, transaction.assetCode);
+        assert.equal(transactionData.asset, transaction.asset);
         assert.equal(transactionData.value, transaction.value);
         assert.equal(
             transactionData.numberOfShares,
@@ -101,7 +112,7 @@ contract("Exchange", (accounts) => {
             index: 45,
             isSale: false,
             userAddress: accounts[1],
-            assetCode: "VALE",
+            asset: "VALE",
             value: 1235,
             numberOfShares: 4,
             acceptsFragmenting: true,
@@ -111,7 +122,7 @@ contract("Exchange", (accounts) => {
             orderData.index,
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             orderData.value,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
@@ -121,7 +132,7 @@ contract("Exchange", (accounts) => {
 
         for (let i = 0; i <= 10; i++) {
             orders = await this.exchange.returnOrders();
-            
+
             assert.equal(orders.length, i);
 
             await this.exchange.addOrder(order);
@@ -135,7 +146,7 @@ contract("Exchange", (accounts) => {
             index: 14,
             seller: accounts[0],
             buyer: accounts[2],
-            assetCode: "ITAUSA",
+            asset: "ITAUSA",
             value: 22,
             numberOfShares: 1,
             saleOrderIndex: 4,
@@ -146,7 +157,7 @@ contract("Exchange", (accounts) => {
             transactionData.index,
             transactionData.seller,
             transactionData.buyer,
-            transactionData.assetCode,
+            transactionData.asset,
             transactionData.value,
             transactionData.numberOfShares,
             transactionData.saleOrderIndex,
@@ -157,7 +168,7 @@ contract("Exchange", (accounts) => {
 
         for (let i = 0; i <= 10; i++) {
             transactions = await this.exchange.returnTransactions();
-            
+
             assert.equal(transactions.length, i);
 
             await this.exchange.addTransaction(transaction);
@@ -168,35 +179,19 @@ contract("Exchange", (accounts) => {
 
     it("should check transaction conflict", async () => {
         assert.equal(
-            await this.exchange.checkTransactionConflict(
-                false,
-                true,
-                true
-            ),
+            await this.exchange.checkTransactionConflict(false, true, true),
             true
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(
-                false,
-                false,
-                true
-            ),
+            await this.exchange.checkTransactionConflict(false, false, true),
             true
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(
-                false,
-                false,
-                false
-            ),
+            await this.exchange.checkTransactionConflict(false, false, false),
             true
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(
-                true,
-                false,
-                false
-            ),
+            await this.exchange.checkTransactionConflict(true, false, false),
             true
         );
         assert.equal(
@@ -204,27 +199,15 @@ contract("Exchange", (accounts) => {
             false
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(
-                true,
-                true,
-                false
-            ),
+            await this.exchange.checkTransactionConflict(true, true, false),
             false
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(
-                false,
-                true,
-                false
-            ),
+            await this.exchange.checkTransactionConflict(false, true, false),
             false
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(
-                true,
-                false,
-                true
-            ),
+            await this.exchange.checkTransactionConflict(true, false, true),
             false
         );
     });
@@ -233,7 +216,7 @@ contract("Exchange", (accounts) => {
         const orderData = {
             isSale: true,
             userAddress: accounts[1],
-            assetCode: "VALE",
+            asset: "VALE",
             numberOfShares: 4,
             acceptsFragmenting: true,
         };
@@ -241,68 +224,68 @@ contract("Exchange", (accounts) => {
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             56,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             58,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             52,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             47,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             69,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             53,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             51,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
-        const orders = await this.exchange.returnSaleOrders();
-        
+        const orders = await this.exchange.returnSaleOrders(orderData.asset);
+
         assert.equal(orders.length, 7);
         assert.equal(orders[0].value, 47);
         assert.equal(orders[1].value, 51);
@@ -317,7 +300,7 @@ contract("Exchange", (accounts) => {
         const orderData = {
             isSale: false,
             userAddress: accounts[1],
-            assetCode: "VALE",
+            asset: "VALE",
             numberOfShares: 4,
             acceptsFragmenting: true,
         };
@@ -325,68 +308,70 @@ contract("Exchange", (accounts) => {
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             56,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             58,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             52,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             47,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             69,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             53,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             orderData.isSale,
             orderData.userAddress,
-            orderData.assetCode,
+            orderData.asset,
             51,
             orderData.numberOfShares,
             orderData.acceptsFragmenting
-        )
+        );
 
-        const orders = await this.exchange.returnPurchasedOrders();
-        
+        const orders = await this.exchange.returnPurchasedOrders(
+            orderData.asset
+        );
+
         assert.equal(orders.length, 7);
         assert.equal(orders[0].value, 69);
         assert.equal(orders[1].value, 58);
