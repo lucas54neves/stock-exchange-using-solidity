@@ -396,9 +396,7 @@ contract("Exchange", (accounts) => {
             orderData.acceptsFragmenting
         );
 
-        const saleOrders = await this.exchange.returnSaleOrders(
-            orderData.asset
-        );
+        let saleOrders = await this.exchange.returnSaleOrders(orderData.asset);
 
         assert.equal(saleOrders.length, 1);
 
@@ -411,7 +409,7 @@ contract("Exchange", (accounts) => {
             orderData.acceptsFragmenting
         );
 
-        const purchasedOrders = await this.exchange.returnPurchasedOrders(
+        let purchasedOrders = await this.exchange.returnPurchasedOrders(
             orderData.asset
         );
 
@@ -422,5 +420,15 @@ contract("Exchange", (accounts) => {
         const transactions = await this.exchange.returnTransactions();
 
         assert.equal(transactions.length, 1);
+
+        saleOrders = await this.exchange.returnSaleOrders(orderData.asset);
+
+        assert.equal(saleOrders.length, 0);
+
+        purchasedOrders = await this.exchange.returnPurchasedOrders(
+            orderData.asset
+        );
+
+        assert.equal(purchasedOrders.length, 0);
     });
 });
