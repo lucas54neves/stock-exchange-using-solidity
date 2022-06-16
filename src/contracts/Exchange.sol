@@ -329,24 +329,24 @@ contract Exchange {
             Order[] memory saleOrders = returnSaleOrders(asset);
             Order[] memory purchasedOrders = returnPurchasedOrders(asset);
 
-            uint256 ordersSize = saleOrders.length > purchasedOrders.length ? purchasedOrders.length : saleOrders.length;
+            for (uint256 j = 0; j < saleOrders.length; j++) {
+                for (uint256 h = 0; h < purchasedOrders.length; h++) {
+                    Order memory saleOrder = saleOrders[j];
+                    Order memory purchasedOrder = purchasedOrders[h];
 
-            for (uint256 j = 0; j < ordersSize; j++) {
-                Order memory saleOrder = saleOrders[j];
-                Order memory purchasedOrder = purchasedOrders[j];
+                    if (saleOrder.value == purchasedOrder.value) {
+                        uint256 numberOfShares = saleOrder.numberOfShares > purchasedOrder.numberOfShares ? purchasedOrder.numberOfShares : saleOrder.numberOfShares;
 
-                if (saleOrder.value == purchasedOrder.value) {
-                    uint256 numberOfShares = saleOrder.numberOfShares > purchasedOrder.numberOfShares ? purchasedOrder.numberOfShares : saleOrder.numberOfShares;
+                        Transaction memory transaction = createTransaction(saleOrder.userAddress, purchasedOrder.userAddress, asset, saleOrder.value, numberOfShares, saleOrder.index, purchasedOrder.index);
+                        
+                        addTransaction(transaction);
 
-                    Transaction memory transaction = createTransaction(saleOrder.userAddress, purchasedOrder.userAddress, asset, saleOrder.value, numberOfShares, saleOrder.index, purchasedOrder.index);
-                    
-                    addTransaction(transaction);
+                        orders[returnPositionOfOrderInArray(saleOrder.index)].isActive = false;
+                        orders[returnPositionOfOrderInArray(purchasedOrder.index)].isActive = false;
 
-                    saleOrders[returnPositionOfOrderInArray(saleOrder.index)].isActive = false;
-                    purchasedOrders[returnPositionOfOrderInArray(purchasedOrder.index)].isActive = false;
-
-                    numberOfSaleOrdersByAssets[asset] -= 1;
-                    numberOfPurchasedOrdersByAssets[asset] -= 1;
+                        numberOfSaleOrdersByAssets[saleOrder.asset] -= 1;
+                        numberOfPurchasedOrdersByAssets[purchasedOrder.asset] -= 1;
+                    }
                 }
             }
         }
