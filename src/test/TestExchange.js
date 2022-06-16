@@ -13,6 +13,8 @@ contract("Exchange", (accounts) => {
 
     beforeEach(async () => {
         this.exchange = await Exchange.new();
+
+        // console.log(this.exchange.constructor._json.deployedBytecode.length);
     });
 
     it("should deploy successfully", async () => {
@@ -67,9 +69,8 @@ contract("Exchange", (accounts) => {
 
     it("should create a transaction", async () => {
         const transactionData = {
-            index: 14,
             seller: accounts[0],
-            buyer: accounts[2],
+            buyer: accounts[1],
             asset: "ITAUSA",
             value: 22,
             numberOfShares: 1,
@@ -78,7 +79,6 @@ contract("Exchange", (accounts) => {
         };
 
         const transaction = await this.exchange.createTransaction(
-            transactionData.index,
             transactionData.seller,
             transactionData.buyer,
             transactionData.asset,
@@ -88,7 +88,6 @@ contract("Exchange", (accounts) => {
             transactionData.purchaseOrderIndex
         );
 
-        assert.equal(transactionData.index, transaction.index);
         assert.equal(transactionData.seller, transaction.seller);
         assert.equal(transactionData.buyer, transaction.buyer);
         assert.equal(transactionData.asset, transaction.asset);
@@ -143,9 +142,8 @@ contract("Exchange", (accounts) => {
 
     it("should add transaction", async () => {
         const transactionData = {
-            index: 14,
             seller: accounts[0],
-            buyer: accounts[2],
+            buyer: accounts[1],
             asset: "ITAUSA",
             value: 22,
             numberOfShares: 1,
@@ -154,7 +152,6 @@ contract("Exchange", (accounts) => {
         };
 
         const transaction = await this.exchange.createTransaction(
-            transactionData.index,
             transactionData.seller,
             transactionData.buyer,
             transactionData.asset,
@@ -380,5 +377,50 @@ contract("Exchange", (accounts) => {
         assert.equal(orders[4].value, 52);
         assert.equal(orders[5].value, 51);
         assert.equal(orders[6].value, 47);
+    });
+
+    it("should realize a operation", async () => {
+        const orderData = {
+            userAddress: accounts[1],
+            asset: "VALE",
+            numberOfShares: 4,
+            acceptsFragmenting: true,
+        };
+
+        await this.exchange.realizeOperationOfCreationOfOrder(
+            true,
+            orderData.userAddress,
+            orderData.asset,
+            56,
+            orderData.numberOfShares,
+            orderData.acceptsFragmenting
+        );
+
+        const saleOrders = await this.exchange.returnSaleOrders(
+            orderData.asset
+        );
+
+        assert.equal(saleOrders.length, 1);
+
+        await this.exchange.realizeOperationOfCreationOfOrder(
+            false,
+            orderData.userAddress,
+            orderData.asset,
+            56,
+            orderData.numberOfShares,
+            orderData.acceptsFragmenting
+        );
+
+        const purchasedOrders = await this.exchange.returnPurchasedOrders(
+            orderData.asset
+        );
+
+        assert.equal(purchasedOrders.length, 1);
+
+        await this.exchange.realizeOperationOfCreationOfTransaction();
+
+        const transactions = await this.exchange.returnTransactions();
+
+        assert.equal(transactions.length, 1);
     });
 });
