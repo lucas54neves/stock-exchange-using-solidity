@@ -8,6 +8,6 @@
     },
     "scripts": {
         "test": "truffle test",
-        "test-sceneries": "truffle test src/test/TestSceneries.js"
+        "test:cases": "truffle test src/test/TestCases.js"
     }
 }
