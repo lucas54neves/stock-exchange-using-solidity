@@ -67,7 +67,6 @@ contract Exchange {
     }
 
     function createOrder(
-        uint256 orderIndex,
         bool isSale,
         address userAddress,
         string memory asset,
@@ -77,7 +76,7 @@ contract Exchange {
     ) public view returns (Order memory) {
         return
             Order({
-                index: orderIndex,
+                index: orders.length + 1,
                 isSale: isSale,
                 userAddress: userAddress,
                 asset: asset,
@@ -200,7 +199,6 @@ contract Exchange {
         uint256 orderIndex = orders.length + 1;
 
         Order memory order = createOrder(
-            orderIndex,
             isSale,
             userAddress,
             asset,
@@ -395,6 +393,22 @@ contract Exchange {
                         );
 
                         addTransaction(transaction);
+
+                        // if (numberOfShares < saleOrder.numberOfShares) {
+                        //     Order memory order = createOrder(
+                        //         orderIndex,
+                        //         isSale,
+                        //         userAddress,
+                        //         asset,
+                        //         value,
+                        //         numberOfShares,
+                        //         acceptsFragmenting
+                        //     );
+
+                        //     addOrder(order);
+                        // }
+
+                        // if (numberOfShares < purchasedOrder.numberOfShares) {}
 
                         orders[returnPositionOfOrderInArray(saleOrder.index)]
                             .isActive = false;
