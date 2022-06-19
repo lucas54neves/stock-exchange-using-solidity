@@ -39,7 +39,6 @@ contract("Exchange", (accounts) => {
 
     it("should create a order", async () => {
         const orderData = {
-            index: 45,
             isSale: false,
             userAddress: accounts[1],
             asset: "VALE",
@@ -49,7 +48,6 @@ contract("Exchange", (accounts) => {
         };
 
         const order = await this.exchange.createOrder(
-            orderData.index,
             orderData.isSale,
             orderData.userAddress,
             orderData.asset,
@@ -58,7 +56,6 @@ contract("Exchange", (accounts) => {
             orderData.acceptsFragmenting
         );
 
-        assert.equal(orderData.index, order.index);
         assert.equal(orderData.isSale, order.isSale);
         assert.equal(orderData.userAddress, order.userAddress);
         assert.equal(orderData.asset, order.asset);
@@ -108,7 +105,6 @@ contract("Exchange", (accounts) => {
 
     it("should add orders", async () => {
         const orderData = {
-            index: 45,
             isSale: false,
             userAddress: accounts[1],
             asset: "VALE",
@@ -118,7 +114,6 @@ contract("Exchange", (accounts) => {
         };
 
         const order = await this.exchange.createOrder(
-            orderData.index,
             orderData.isSale,
             orderData.userAddress,
             orderData.asset,
@@ -175,36 +170,80 @@ contract("Exchange", (accounts) => {
     });
 
     it("should check transaction conflict", async () => {
+        // sellerAcceptsToFragment,
+        // buyerAcceptsToFragment,
+        // sellerHasTheMostQuantity,
+        // numberOfSharesIsDifferent
         assert.equal(
-            await this.exchange.checkTransactionConflict(false, true, true),
+            await this.exchange.checkTransactionConflict(
+                false,
+                true,
+                true,
+                true
+            ),
             true
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(false, false, true),
+            await this.exchange.checkTransactionConflict(
+                false,
+                false,
+                true,
+                true
+            ),
             true
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(false, false, false),
+            await this.exchange.checkTransactionConflict(
+                false,
+                false,
+                false,
+                true
+            ),
             true
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(true, false, false),
+            await this.exchange.checkTransactionConflict(
+                true,
+                false,
+                false,
+                true
+            ),
             true
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(true, true, true),
+            await this.exchange.checkTransactionConflict(
+                true,
+                true,
+                true,
+                true
+            ),
             false
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(true, true, false),
+            await this.exchange.checkTransactionConflict(
+                true,
+                true,
+                false,
+                true
+            ),
             false
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(false, true, false),
+            await this.exchange.checkTransactionConflict(
+                false,
+                true,
+                false,
+                true
+            ),
             false
         );
         assert.equal(
-            await this.exchange.checkTransactionConflict(true, false, true),
+            await this.exchange.checkTransactionConflict(
+                true,
+                false,
+                true,
+                true
+            ),
             false
         );
     });
