@@ -38,9 +38,6 @@ contract Exchange {
     mapping(string => uint256) private numberOfSaleOrdersByAssets;
     mapping(string => uint256) private numberOfPurchasedOrdersByAssets;
 
-    // constructor() {
-    // }
-
     function returnOrderByOrderIndex(uint256 orderIndex)
         private
         view
@@ -50,7 +47,7 @@ contract Exchange {
     }
 
     function returnPositionOfOrderInArray(uint256 orderIndex)
-        private
+        public
         pure
         returns (uint256)
     {
@@ -372,7 +369,8 @@ contract Exchange {
                         !checkTransactionConflict(
                             saleOrder.acceptsFragmenting,
                             purchasedOrder.acceptsFragmenting,
-                            saleOrder.value > purchasedOrder.value,
+                            saleOrder.numberOfShares >
+                                purchasedOrder.numberOfShares,
                             saleOrder.numberOfShares !=
                                 purchasedOrder.numberOfShares
                         )
@@ -394,21 +392,33 @@ contract Exchange {
 
                         addTransaction(transaction);
 
-                        // if (numberOfShares < saleOrder.numberOfShares) {
-                        //     Order memory order = createOrder(
-                        //         orderIndex,
-                        //         isSale,
-                        //         userAddress,
-                        //         asset,
-                        //         value,
-                        //         numberOfShares,
-                        //         acceptsFragmenting
-                        //     );
+                        if (
+                            saleOrder.numberOfShares >
+                            purchasedOrder.numberOfShares
+                        ) {
+                            realizeOperationOfCreationOfOrder(
+                                saleOrder.isSale,
+                                saleOrder.userAddress,
+                                saleOrder.asset,
+                                saleOrder.value,
+                                saleOrder.numberOfShares - numberOfShares,
+                                saleOrder.acceptsFragmenting
+                            );
+                        }
 
-                        //     addOrder(order);
-                        // }
-
-                        // if (numberOfShares < purchasedOrder.numberOfShares) {}
+                        if (
+                            purchasedOrder.numberOfShares >
+                            saleOrder.numberOfShares
+                        ) {
+                            realizeOperationOfCreationOfOrder(
+                                purchasedOrder.isSale,
+                                purchasedOrder.userAddress,
+                                purchasedOrder.asset,
+                                purchasedOrder.value,
+                                purchasedOrder.numberOfShares - numberOfShares,
+                                purchasedOrder.acceptsFragmenting
+                            );
+                        }
 
                         orders[returnPositionOfOrderInArray(saleOrder.index)]
                             .isActive = false;
