@@ -30,9 +30,10 @@ contract Exchange {
     Transaction[] private transactions;
     string[] private assets;
 
-
-    mapping(string => mapping(uint256 => uint256)) private saleOrdersMappingByAssets;
-    mapping(string => mapping(uint256 => uint256)) private purchasedOrdersMappingByAssets;
+    mapping(string => mapping(uint256 => uint256))
+        private saleOrdersMappingByAssets;
+    mapping(string => mapping(uint256 => uint256))
+        private purchasedOrdersMappingByAssets;
 
     mapping(string => uint256) private numberOfSaleOrdersByAssets;
     mapping(string => uint256) private numberOfPurchasedOrdersByAssets;
@@ -40,11 +41,19 @@ contract Exchange {
     // constructor() {
     // }
 
-    function returnOrderByOrderIndex(uint256 orderIndex) private view returns (Order memory) {
+    function returnOrderByOrderIndex(uint256 orderIndex)
+        private
+        view
+        returns (Order memory)
+    {
         return orders[orderIndex - 1];
     }
 
-    function returnPositionOfOrderInArray(uint256 orderIndex) private pure returns (uint256) {
+    function returnPositionOfOrderInArray(uint256 orderIndex)
+        private
+        pure
+        returns (uint256)
+    {
         return orderIndex - 1;
     }
 
@@ -125,7 +134,7 @@ contract Exchange {
         return transactions;
     }
 
-    function returnAssets () public view returns (string[] memory) {
+    function returnAssets() public view returns (string[] memory) {
         return assets;
     }
 
@@ -142,20 +151,33 @@ contract Exchange {
     function checkTransactionConflict(
         bool sellerAcceptsToFragment,
         bool buyerAcceptsToFragment,
-        bool sellerHasTheMostQuantity
+        bool sellerHasTheMostQuantity,
+        bool numberOfSharesIsDifferent
     ) public pure returns (bool) {
-        if (!sellerAcceptsToFragment && sellerHasTheMostQuantity) {
+        if (
+            !sellerAcceptsToFragment &&
+            sellerHasTheMostQuantity &&
+            numberOfSharesIsDifferent
+        ) {
             return true;
         }
 
-        if (!buyerAcceptsToFragment && !sellerHasTheMostQuantity) {
+        if (
+            !buyerAcceptsToFragment &&
+            !sellerHasTheMostQuantity &&
+            numberOfSharesIsDifferent
+        ) {
             return true;
         }
 
         return false;
     }
 
-    function isEmpty(bool isSale, string memory asset) public view returns (bool) {
+    function isEmpty(bool isSale, string memory asset)
+        public
+        view
+        returns (bool)
+    {
         if (isSale) {
             return numberOfSaleOrdersByAssets[asset] == 0;
         }
@@ -242,7 +264,9 @@ contract Exchange {
         while (_order > 0) {
             if (isSale) {
                 if (value < orders[_order - 1].value) {
-                    saleOrdersMappingByAssets[asset][previousOrder] = orderIndex;
+                    saleOrdersMappingByAssets[asset][
+                        previousOrder
+                    ] = orderIndex;
                     saleOrdersMappingByAssets[asset][orderIndex] = _order;
 
                     numberOfSaleOrdersByAssets[asset] += 1;
@@ -251,7 +275,9 @@ contract Exchange {
                 }
             } else {
                 if (value > orders[_order - 1].value) {
-                    purchasedOrdersMappingByAssets[asset][previousOrder] = orderIndex;
+                    purchasedOrdersMappingByAssets[asset][
+                        previousOrder
+                    ] = orderIndex;
                     purchasedOrdersMappingByAssets[asset][orderIndex] = _order;
 
                     numberOfPurchasedOrdersByAssets[asset] += 1;
@@ -285,7 +311,11 @@ contract Exchange {
         return true;
     }
 
-    function returnSaleOrders(string memory asset) public view returns (Order[] memory) {
+    function returnSaleOrders(string memory asset)
+        public
+        view
+        returns (Order[] memory)
+    {
         Order[] memory _orders = new Order[](numberOfSaleOrdersByAssets[asset]);
         uint256 orderIndex = saleOrdersMappingByAssets[asset][0];
         uint256 i = 0;
@@ -303,8 +333,14 @@ contract Exchange {
         return _orders;
     }
 
-    function returnPurchasedOrders(string memory asset) public view returns (Order[] memory) {
-        Order[] memory _orders = new Order[](numberOfPurchasedOrdersByAssets[asset]);
+    function returnPurchasedOrders(string memory asset)
+        public
+        view
+        returns (Order[] memory)
+    {
+        Order[] memory _orders = new Order[](
+            numberOfPurchasedOrdersByAssets[asset]
+        );
         uint256 orderIndex = purchasedOrdersMappingByAssets[asset][0];
         uint256 i = 0;
 
@@ -316,7 +352,6 @@ contract Exchange {
             }
 
             orderIndex = purchasedOrdersMappingByAssets[asset][orderIndex];
-
         }
 
         return _orders;
@@ -334,18 +369,43 @@ contract Exchange {
                     Order memory saleOrder = saleOrders[j];
                     Order memory purchasedOrder = purchasedOrders[h];
 
-                    if (saleOrder.value == purchasedOrder.value) {
-                        uint256 numberOfShares = saleOrder.numberOfShares > purchasedOrder.numberOfShares ? purchasedOrder.numberOfShares : saleOrder.numberOfShares;
+                    if (
+                        saleOrder.value == purchasedOrder.value &&
+                        !checkTransactionConflict(
+                            saleOrder.acceptsFragmenting,
+                            purchasedOrder.acceptsFragmenting,
+                            saleOrder.value > purchasedOrder.value,
+                            saleOrder.numberOfShares !=
+                                purchasedOrder.numberOfShares
+                        )
+                    ) {
+                        uint256 numberOfShares = saleOrder.numberOfShares >
+                            purchasedOrder.numberOfShares
+                            ? purchasedOrder.numberOfShares
+                            : saleOrder.numberOfShares;
 
-                        Transaction memory transaction = createTransaction(saleOrder.userAddress, purchasedOrder.userAddress, asset, saleOrder.value, numberOfShares, saleOrder.index, purchasedOrder.index);
-                        
+                        Transaction memory transaction = createTransaction(
+                            saleOrder.userAddress,
+                            purchasedOrder.userAddress,
+                            asset,
+                            saleOrder.value,
+                            numberOfShares,
+                            saleOrder.index,
+                            purchasedOrder.index
+                        );
+
                         addTransaction(transaction);
 
-                        orders[returnPositionOfOrderInArray(saleOrder.index)].isActive = false;
-                        orders[returnPositionOfOrderInArray(purchasedOrder.index)].isActive = false;
+                        orders[returnPositionOfOrderInArray(saleOrder.index)]
+                            .isActive = false;
+                        orders[
+                            returnPositionOfOrderInArray(purchasedOrder.index)
+                        ].isActive = false;
 
                         numberOfSaleOrdersByAssets[saleOrder.asset] -= 1;
-                        numberOfPurchasedOrdersByAssets[purchasedOrder.asset] -= 1;
+                        numberOfPurchasedOrdersByAssets[
+                            purchasedOrder.asset
+                        ] -= 1;
                     }
                 }
             }
