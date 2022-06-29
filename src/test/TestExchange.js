@@ -1,46 +1,32 @@
-const Exchange = artifacts.require("./Exchange.sol");
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
 
-function showOrdersByAsset(asset, orders) {
-    console.log(`Asset: ${asset}`);
-
-    for (let i = 0; i < orders.length; i++) {
-        console.log(`${i + 1} ${orders[i].value}`);
-    }
-}
-
-contract("Exchange", (accounts) => {
-    const creatorAddress = accounts[0];
-
+describe("Exchange", () => {
     beforeEach(async () => {
-        this.exchange = await Exchange.new();
+        const Exchange = await ethers.getContractFactory("Exchange");
 
-        // console.log(this.exchange.constructor._json.deployedBytecode.length);
-    });
+        this.exchange = await Exchange.deploy();
 
-    it("should deploy successfully", async () => {
-        assert.notEqual(creatorAddress, 0x0);
-        assert.notEqual(creatorAddress, "");
-        assert.notEqual(creatorAddress, null);
-        assert.notEqual(creatorAddress, undefined);
+        this.accounts = await ethers.getSigners();
     });
 
     it("should compare assets", async () => {
         const sameAssets = await this.exchange.compareAssets("PETRO", "PETRO");
 
-        assert.equal(sameAssets, true);
+        expect(sameAssets).to.equal(true);
 
         const differentAssets = await this.exchange.compareAssets(
             "PETRO",
             "VALE"
         );
 
-        assert.equal(differentAssets, false);
+        expect(differentAssets).to.equal(false);
     });
 
     it("should create a order", async () => {
         const orderData = {
             isSale: false,
-            userAddress: accounts[1],
+            userAddress: this.accounts[1].address,
             asset: "VALE",
             value: 1235,
             numberOfShares: 4,
@@ -56,18 +42,18 @@ contract("Exchange", (accounts) => {
             orderData.acceptsFragmenting
         );
 
-        assert.equal(orderData.isSale, order.isSale);
-        assert.equal(orderData.userAddress, order.userAddress);
-        assert.equal(orderData.asset, order.asset);
-        assert.equal(orderData.value, order.value);
-        assert.equal(orderData.numberOfShares, order.numberOfShares);
-        assert.equal(orderData.acceptsFragmenting, order.acceptsFragmenting);
+        expect(orderData.isSale).to.equal(order.isSale);
+        expect(orderData.userAddress).to.equal(order.userAddress);
+        expect(orderData.asset).to.equal(order.asset);
+        expect(orderData.value).to.equal(order.value);
+        expect(orderData.numberOfShares).to.equal(order.numberOfShares);
+        expect(orderData.acceptsFragmenting).to.equal(order.acceptsFragmenting);
     });
 
     it("should create a transaction", async () => {
         const transactionData = {
-            seller: accounts[0],
-            buyer: accounts[1],
+            seller: this.accounts[2].address,
+            buyer: this.accounts[1].address,
             asset: "ITAUSA",
             value: 22,
             numberOfShares: 1,
@@ -85,20 +71,17 @@ contract("Exchange", (accounts) => {
             transactionData.purchaseOrderIndex
         );
 
-        assert.equal(transactionData.seller, transaction.seller);
-        assert.equal(transactionData.buyer, transaction.buyer);
-        assert.equal(transactionData.asset, transaction.asset);
-        assert.equal(transactionData.value, transaction.value);
-        assert.equal(
-            transactionData.numberOfShares,
+        expect(transactionData.seller).to.equal(transaction.seller);
+        expect(transactionData.buyer).to.equal(transaction.buyer);
+        expect(transactionData.asset).to.equal(transaction.asset);
+        expect(transactionData.value).to.equal(transaction.value);
+        expect(transactionData.numberOfShares).to.equal(
             transaction.numberOfShares
         );
-        assert.equal(
-            transactionData.saleOrderIndex,
+        expect(transactionData.saleOrderIndex).to.equal(
             transaction.saleOrderIndex
         );
-        assert.equal(
-            transactionData.purchaseOrderIndex,
+        expect(transactionData.purchaseOrderIndex).to.equal(
             transaction.purchaseOrderIndex
         );
     });
@@ -106,7 +89,7 @@ contract("Exchange", (accounts) => {
     it("should add orders", async () => {
         const orderData = {
             isSale: false,
-            userAddress: accounts[1],
+            userAddress: this.accounts[1].address,
             asset: "VALE",
             value: 1235,
             numberOfShares: 4,
@@ -127,18 +110,18 @@ contract("Exchange", (accounts) => {
         for (let i = 0; i <= 10; i++) {
             orders = await this.exchange.returnOrders();
 
-            assert.equal(orders.length, i);
+            expect(orders.length).to.equal(i);
 
             await this.exchange.addOrder(order);
         }
 
-        assert.equal(orders.length, 10);
+        expect(orders.length).to.equal(10);
     });
 
     it("should add transaction", async () => {
         const transactionData = {
-            seller: accounts[0],
-            buyer: accounts[1],
+            seller: this.accounts[2].address,
+            buyer: this.accounts[1].address,
             asset: "ITAUSA",
             value: 22,
             numberOfShares: 1,
@@ -161,12 +144,12 @@ contract("Exchange", (accounts) => {
         for (let i = 0; i <= 10; i++) {
             transactions = await this.exchange.returnTransactions();
 
-            assert.equal(transactions.length, i);
+            expect(transactions.length).to.equal(i);
 
             await this.exchange.addTransaction(transaction);
         }
 
-        assert.equal(transactions.length, 10);
+        expect(transactions.length).to.equal(10);
     });
 
     it("should check transaction conflict", async () => {
@@ -174,84 +157,71 @@ contract("Exchange", (accounts) => {
         // buyerAcceptsToFragment,
         // sellerHasTheMostQuantity,
         // numberOfSharesIsDifferent
-        assert.equal(
+        expect(
             await this.exchange.checkTransactionConflict(
                 false,
                 true,
                 true,
                 true
-            ),
-            true
-        );
-        assert.equal(
+            )
+        ).to.equal(true);
+        expect(
             await this.exchange.checkTransactionConflict(
                 false,
                 false,
                 true,
                 true
-            ),
-            true
-        );
-        assert.equal(
+            )
+        ).to.equal(true);
+        expect(
             await this.exchange.checkTransactionConflict(
                 false,
                 false,
                 false,
                 true
-            ),
-            true
-        );
-        assert.equal(
+            )
+        ).to.equal(true);
+        expect(
             await this.exchange.checkTransactionConflict(
                 true,
                 false,
                 false,
                 true
-            ),
-            true
-        );
-        assert.equal(
-            await this.exchange.checkTransactionConflict(
-                true,
-                true,
-                true,
-                true
-            ),
-            false
-        );
-        assert.equal(
+            )
+        ).to.equal(true);
+        expect(
+            await this.exchange.checkTransactionConflict(true, true, true, true)
+        ).to.equal(false);
+        expect(
             await this.exchange.checkTransactionConflict(
                 true,
                 true,
                 false,
                 true
-            ),
-            false
-        );
-        assert.equal(
+            )
+        ).to.equal(false);
+        expect(
             await this.exchange.checkTransactionConflict(
                 false,
                 true,
                 false,
                 true
-            ),
-            false
-        );
-        assert.equal(
+            )
+        ).to.equal(false);
+        expect(
             await this.exchange.checkTransactionConflict(
                 true,
                 false,
                 true,
                 true
-            ),
-            false
-        );
+            )
+        ).to.equal(false);
     });
 
     it("should return sale orders", async () => {
         const orderData = {
             isSale: true,
-            userAddress: accounts[1],
+            userAddress: this.accounts[1].address,
             asset: "VALE",
             numberOfShares: 4,
             acceptsFragmenting: true,
@@ -322,20 +292,20 @@ contract("Exchange", (accounts) => {
 
         const orders = await this.exchange.returnSaleOrders(orderData.asset);
 
-        assert.equal(orders.length, 7);
-        assert.equal(orders[0].value, 47);
-        assert.equal(orders[1].value, 51);
-        assert.equal(orders[2].value, 52);
-        assert.equal(orders[3].value, 53);
-        assert.equal(orders[4].value, 56);
-        assert.equal(orders[5].value, 58);
-        assert.equal(orders[6].value, 69);
+        expect(orders.length).to.equal(7);
+        expect(orders[0].value).to.equal(47);
+        expect(orders[1].value).to.equal(51);
+        expect(orders[2].value).to.equal(52);
+        expect(orders[3].value).to.equal(53);
+        expect(orders[4].value).to.equal(56);
+        expect(orders[5].value).to.equal(58);
+        expect(orders[6].value).to.equal(69);
     });
 
     it("should return purchased orders", async () => {
         const orderData = {
             isSale: false,
-            userAddress: accounts[1],
+            userAddress: this.accounts[1].address,
             asset: "VALE",
             numberOfShares: 4,
             acceptsFragmenting: true,
@@ -408,19 +378,19 @@ contract("Exchange", (accounts) => {
             orderData.asset
         );
 
-        assert.equal(orders.length, 7);
-        assert.equal(orders[0].value, 69);
-        assert.equal(orders[1].value, 58);
-        assert.equal(orders[2].value, 56);
-        assert.equal(orders[3].value, 53);
-        assert.equal(orders[4].value, 52);
-        assert.equal(orders[5].value, 51);
-        assert.equal(orders[6].value, 47);
+        expect(orders.length).to.equal(7);
+        expect(orders[0].value).to.equal(69);
+        expect(orders[1].value).to.equal(58);
+        expect(orders[2].value).to.equal(56);
+        expect(orders[3].value).to.equal(53);
+        expect(orders[4].value).to.equal(52);
+        expect(orders[5].value).to.equal(51);
+        expect(orders[6].value).to.equal(47);
     });
 
     it("should realize a operation", async () => {
         const orderData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[1].address,
             asset: "VALE",
             numberOfShares: 4,
             acceptsFragmenting: true,
@@ -437,7 +407,7 @@ contract("Exchange", (accounts) => {
 
         let saleOrders = await this.exchange.returnSaleOrders(orderData.asset);
 
-        assert.equal(saleOrders.length, 1);
+        expect(saleOrders.length).to.equal(1);
 
         await this.exchange.realizeOperationOfCreationOfOrder(
             false,
@@ -452,22 +422,22 @@ contract("Exchange", (accounts) => {
             orderData.asset
         );
 
-        assert.equal(purchasedOrders.length, 1);
+        expect(purchasedOrders.length).to.equal(1);
 
         await this.exchange.realizeOperationOfCreationOfTransaction();
 
         const transactions = await this.exchange.returnTransactions();
 
-        assert.equal(transactions.length, 1);
+        expect(transactions.length).to.equal(1);
 
         saleOrders = await this.exchange.returnSaleOrders(orderData.asset);
 
-        assert.equal(saleOrders.length, 0);
+        expect(saleOrders.length).to.equal(0);
 
         purchasedOrders = await this.exchange.returnPurchasedOrders(
             orderData.asset
         );
 
-        assert.equal(purchasedOrders.length, 0);
+        expect(purchasedOrders.length).to.equal(0);
     });
 });
