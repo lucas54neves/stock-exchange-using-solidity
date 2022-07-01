@@ -1,4 +1,5 @@
-const Exchange = artifacts.require("./Exchange.sol");
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
 
 function viewListOfOrdersByAssetCode(asset, purchasedOrders, saleOrders) {
     const maximumLength = Math.max(purchasedOrders.length, saleOrders.length);
@@ -23,9 +24,12 @@ function viewListOfOrdersByAssetCode(asset, purchasedOrders, saleOrders) {
     }
 }
 
-contract("Case 1", (accounts) => {
+describe("Case 1", (accounts) => {
     before(async () => {
-        this.exchange = await Exchange.new();
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
         this.asset = "ABC123";
         this.purchasedOrders = [];
         this.saleOrders = [];
@@ -66,147 +70,129 @@ contract("Case 1", (accounts) => {
         );
     });
 
-    context("buyer creates a purchase order", () => {
-        describe("purchase order creation", () => {
-            it("should create a purchase order", async () => {
-                assert.equal(this.purchasedOrders.length, 0);
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.buyerData.isSale,
-                    this.buyerData.userAddress,
-                    this.asset,
-                    this.buyerData.value,
-                    this.buyerData.numberOfShares,
-                    this.buyerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
 
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                assert.equal(this.purchasedOrders.length, 1);
+            expect(this.purchasedOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.purchasedOrders[0].userAddress,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.purchasedOrders[0].value,
-                    this.buyerData.value
-                );
-                assert.equal(
-                    this.purchasedOrders[0].isSale,
-                    this.buyerData.isSale
-                );
-                assert.equal(
-                    this.purchasedOrders[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.purchasedOrders[0].acceptsFragmenting,
-                    this.buyerData.acceptsFragmenting
-                );
-                assert.equal(this.purchasedOrders[0].asset, this.asset);
-            });
+            expect(
+                this.purchasedOrders[0].userAddress,
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
         });
     });
 
-    context("seller creates a sale order", () => {
-        describe("sale order creation", () => {
-            it("should create a sale order", async () => {
-                assert.equal(this.saleOrders.length, 0);
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.sellerData.isSale,
-                    this.sellerData.userAddress,
-                    this.asset,
-                    this.sellerData.value,
-                    this.sellerData.numberOfShares,
-                    this.sellerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
 
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
 
-                assert.equal(this.saleOrders.length, 1);
+            expect(this.saleOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.saleOrders[0].userAddress,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.saleOrders[0].value, this.sellerData.value);
-                assert.equal(this.saleOrders[0].isSale, this.sellerData.isSale);
-                assert.equal(
-                    this.saleOrders[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
-                assert.equal(
-                    this.saleOrders[0].acceptsFragmenting,
-                    this.sellerData.acceptsFragmenting
-                );
-                assert.equal(this.saleOrders[0].asset, this.asset);
-            });
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value).to.equal(this.sellerData.value);
+            expect(this.saleOrders[0].isSale).to.equal(this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset).to.equal(this.asset);
         });
     });
 
-    context("transaction creation", () => {
-        describe("transaction creation", () => {
-            it("should create transaction", async () => {
-                assert.equal(this.purchasedOrders.length, 1);
-                assert.equal(this.saleOrders.length, 1);
-                assert.equal(this.transactions.length, 0);
+    describe("transaction creation", () => {
+        it("should create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfTransaction();
+            await this.exchange.realizeOperationOfCreationOfTransaction();
 
-                this.transactions = await this.exchange.returnTransactions();
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.transactions = await this.exchange.returnTransactions();
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                assert.equal(this.transactions.length, 1);
-                assert.equal(this.purchasedOrders.length, 0);
-                assert.equal(this.saleOrders.length, 0);
+            expect(this.transactions.length).to.equal(1);
+            expect(this.purchasedOrders.length).to.equal(0);
+            expect(this.saleOrders.length).to.equal(0);
 
-                assert.equal(
-                    this.transactions[0].buyer,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.transactions[0].seller,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.transactions[0].asset, this.asset);
+            expect(this.transactions[0].buyer).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.transactions[0].seller).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.transactions[0].asset).to.equal(this.asset);
 
-                assert.equal(this.transactions[0].value, this.buyerData.value);
-                assert.equal(this.transactions[0].value, this.sellerData.value);
+            expect(this.transactions[0].value).to.equal(this.buyerData.value);
+            expect(this.transactions[0].value).to.equal(this.sellerData.value);
 
-                assert.equal(
-                    this.transactions[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.transactions[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
+            expect(this.transactions[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.transactions[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
 
-                assert.equal(
-                    this.transactions[0].purchaseOrderIndex,
-                    this.purchaseOrderIndex
-                );
-                assert.equal(
-                    this.transactions[0].saleOrderIndex,
-                    this.saleOrderIndex
-                );
-            });
+            expect(this.transactions[0].purchaseOrderIndex).to.equal(
+                this.purchaseOrderIndex
+            );
+            expect(this.transactions[0].saleOrderIndex).to.equal(
+                this.saleOrderIndex
+            );
         });
     });
 });
 
-contract("Case 2", (accounts) => {
+describe("Case 2", (accounts) => {
     before(async () => {
-        this.exchange = await Exchange.new();
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
         this.asset = "ABC123";
         this.purchasedOrders = [];
         this.saleOrders = [];
@@ -247,147 +233,125 @@ contract("Case 2", (accounts) => {
         );
     });
 
-    context("buyer creates a purchase order", () => {
-        describe("purchase order creation", () => {
-            it("should create a purchase order", async () => {
-                assert.equal(this.purchasedOrders.length, 0);
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.buyerData.isSale,
-                    this.buyerData.userAddress,
-                    this.asset,
-                    this.buyerData.value,
-                    this.buyerData.numberOfShares,
-                    this.buyerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
 
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                assert.equal(this.purchasedOrders.length, 1);
+            expect(this.purchasedOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.purchasedOrders[0].userAddress,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.purchasedOrders[0].value,
-                    this.buyerData.value
-                );
-                assert.equal(
-                    this.purchasedOrders[0].isSale,
-                    this.buyerData.isSale
-                );
-                assert.equal(
-                    this.purchasedOrders[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.purchasedOrders[0].acceptsFragmenting,
-                    this.buyerData.acceptsFragmenting
-                );
-                assert.equal(this.purchasedOrders[0].asset, this.asset);
-            });
+            expect(this.purchasedOrders[0].userAddress).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
         });
     });
 
-    context("seller creates a sale order", () => {
-        describe("sale order creation", () => {
-            it("should create a sale order", async () => {
-                assert.equal(this.saleOrders.length, 0);
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.sellerData.isSale,
-                    this.sellerData.userAddress,
-                    this.asset,
-                    this.sellerData.value,
-                    this.sellerData.numberOfShares,
-                    this.sellerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
 
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
 
-                assert.equal(this.saleOrders.length, 1);
+            expect(this.saleOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.saleOrders[0].userAddress,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.saleOrders[0].value, this.sellerData.value);
-                assert.equal(this.saleOrders[0].isSale, this.sellerData.isSale);
-                assert.equal(
-                    this.saleOrders[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
-                assert.equal(
-                    this.saleOrders[0].acceptsFragmenting,
-                    this.sellerData.acceptsFragmenting
-                );
-                assert.equal(this.saleOrders[0].asset, this.asset);
-            });
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value).to.equal(this.sellerData.value);
+            expect(this.saleOrders[0].isSale).to.equal(this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset).to.equal(this.asset);
         });
     });
 
-    context("transaction creation", () => {
-        describe("transaction creation", () => {
-            it("should create transaction", async () => {
-                assert.equal(this.purchasedOrders.length, 1);
-                assert.equal(this.saleOrders.length, 1);
-                assert.equal(this.transactions.length, 0);
+    describe("transaction creation", () => {
+        it("should create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfTransaction();
+            await this.exchange.realizeOperationOfCreationOfTransaction();
 
-                this.transactions = await this.exchange.returnTransactions();
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.transactions = await this.exchange.returnTransactions();
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                assert.equal(this.transactions.length, 1);
-                assert.equal(this.purchasedOrders.length, 0);
-                assert.equal(this.saleOrders.length, 0);
+            expect(this.transactions.length).to.equal(1);
+            expect(this.purchasedOrders.length).to.equal(0);
+            expect(this.saleOrders.length).to.equal(0);
 
-                assert.equal(
-                    this.transactions[0].buyer,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.transactions[0].seller,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.transactions[0].asset, this.asset);
+            expect(this.transactions[0].buyer, this.buyerData.userAddress);
+            expect(this.transactions[0].seller, this.sellerData.userAddress);
+            expect(this.transactions[0].asset, this.asset);
 
-                assert.equal(this.transactions[0].value, this.buyerData.value);
-                assert.equal(this.transactions[0].value, this.sellerData.value);
+            expect(this.transactions[0].value, this.buyerData.value);
+            expect(this.transactions[0].value, this.sellerData.value);
 
-                assert.equal(
-                    this.transactions[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.transactions[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
+            expect(
+                this.transactions[0].numberOfShares,
+                this.buyerData.numberOfShares
+            );
+            expect(
+                this.transactions[0].numberOfShares,
+                this.sellerData.numberOfShares
+            );
 
-                assert.equal(
-                    this.transactions[0].purchaseOrderIndex,
-                    this.purchaseOrderIndex
-                );
-                assert.equal(
-                    this.transactions[0].saleOrderIndex,
-                    this.saleOrderIndex
-                );
-            });
+            expect(
+                this.transactions[0].purchaseOrderIndex,
+                this.purchaseOrderIndex
+            );
+            expect(this.transactions[0].saleOrderIndex, this.saleOrderIndex);
         });
     });
 });
 
-contract("Case 3", (accounts) => {
+describe("Case 3", (accounts) => {
     before(async () => {
-        this.exchange = await Exchange.new();
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
         this.asset = "ABC123";
         this.purchasedOrders = [];
         this.saleOrders = [];
@@ -428,147 +392,124 @@ contract("Case 3", (accounts) => {
         );
     });
 
-    context("buyer creates a purchase order", () => {
-        describe("purchase order creation", () => {
-            it("should create a purchase order", async () => {
-                assert.equal(this.purchasedOrders.length, 0);
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.buyerData.isSale,
-                    this.buyerData.userAddress,
-                    this.asset,
-                    this.buyerData.value,
-                    this.buyerData.numberOfShares,
-                    this.buyerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
 
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                assert.equal(this.purchasedOrders.length, 1);
+            expect(this.purchasedOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.purchasedOrders[0].userAddress,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.purchasedOrders[0].value,
-                    this.buyerData.value
-                );
-                assert.equal(
-                    this.purchasedOrders[0].isSale,
-                    this.buyerData.isSale
-                );
-                assert.equal(
-                    this.purchasedOrders[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.purchasedOrders[0].acceptsFragmenting,
-                    this.buyerData.acceptsFragmenting
-                );
-                assert.equal(this.purchasedOrders[0].asset, this.asset);
-            });
+            expect(
+                this.purchasedOrders[0].userAddress,
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value, this.buyerData.value);
+            expect(this.purchasedOrders[0].isSale, this.buyerData.isSale);
+            expect(
+                this.purchasedOrders[0].numberOfShares,
+                this.buyerData.numberOfShares
+            );
+            expect(
+                this.purchasedOrders[0].acceptsFragmenting,
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset, this.asset);
         });
     });
 
-    context("seller creates a sale order", () => {
-        describe("sale order creation", () => {
-            it("should create a sale order", async () => {
-                assert.equal(this.saleOrders.length, 0);
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.sellerData.isSale,
-                    this.sellerData.userAddress,
-                    this.asset,
-                    this.sellerData.value,
-                    this.sellerData.numberOfShares,
-                    this.sellerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
 
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
 
-                assert.equal(this.saleOrders.length, 1);
+            expect(this.saleOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.saleOrders[0].userAddress,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.saleOrders[0].value, this.sellerData.value);
-                assert.equal(this.saleOrders[0].isSale, this.sellerData.isSale);
-                assert.equal(
-                    this.saleOrders[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
-                assert.equal(
-                    this.saleOrders[0].acceptsFragmenting,
-                    this.sellerData.acceptsFragmenting
-                );
-                assert.equal(this.saleOrders[0].asset, this.asset);
-            });
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value, this.sellerData.value);
+            expect(this.saleOrders[0].isSale, this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset, this.asset);
         });
     });
 
-    context("transaction creation", () => {
-        describe("transaction creation", () => {
-            it("should create transaction", async () => {
-                assert.equal(this.purchasedOrders.length, 1);
-                assert.equal(this.saleOrders.length, 1);
-                assert.equal(this.transactions.length, 0);
+    describe("transaction creation", () => {
+        it("should create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfTransaction();
+            await this.exchange.realizeOperationOfCreationOfTransaction();
 
-                this.transactions = await this.exchange.returnTransactions();
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.transactions = await this.exchange.returnTransactions();
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                assert.equal(this.transactions.length, 1);
-                assert.equal(this.purchasedOrders.length, 0);
-                assert.equal(this.saleOrders.length, 0);
+            expect(this.transactions.length).to.equal(1);
+            expect(this.purchasedOrders.length).to.equal(0);
+            expect(this.saleOrders.length).to.equal(0);
 
-                assert.equal(
-                    this.transactions[0].buyer,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.transactions[0].seller,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.transactions[0].asset, this.asset);
+            expect(this.transactions[0].buyer, this.buyerData.userAddress);
+            expect(this.transactions[0].seller, this.sellerData.userAddress);
+            expect(this.transactions[0].asset, this.asset);
 
-                assert.equal(this.transactions[0].value, this.buyerData.value);
-                assert.equal(this.transactions[0].value, this.sellerData.value);
+            expect(this.transactions[0].value, this.buyerData.value);
+            expect(this.transactions[0].value, this.sellerData.value);
 
-                assert.equal(
-                    this.transactions[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.transactions[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
+            expect(
+                this.transactions[0].numberOfShares,
+                this.buyerData.numberOfShares
+            );
+            expect(
+                this.transactions[0].numberOfShares,
+                this.sellerData.numberOfShares
+            );
 
-                assert.equal(
-                    this.transactions[0].purchaseOrderIndex,
-                    this.purchaseOrderIndex
-                );
-                assert.equal(
-                    this.transactions[0].saleOrderIndex,
-                    this.saleOrderIndex
-                );
-            });
+            expect(
+                this.transactions[0].purchaseOrderIndex,
+                this.purchaseOrderIndex
+            );
+            expect(this.transactions[0].saleOrderIndex, this.saleOrderIndex);
         });
     });
 });
 
-contract("Case 4", (accounts) => {
+describe("Case 4", (accounts) => {
     before(async () => {
-        this.exchange = await Exchange.new();
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
         this.asset = "ABC123";
         this.purchasedOrders = [];
         this.saleOrders = [];
@@ -609,147 +550,128 @@ contract("Case 4", (accounts) => {
         );
     });
 
-    context("buyer creates a purchase order", () => {
-        describe("purchase order creation", () => {
-            it("should create a purchase order", async () => {
-                assert.equal(this.purchasedOrders.length, 0);
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.buyerData.isSale,
-                    this.buyerData.userAddress,
-                    this.asset,
-                    this.buyerData.value,
-                    this.buyerData.numberOfShares,
-                    this.buyerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
 
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                assert.equal(this.purchasedOrders.length, 1);
+            expect(this.purchasedOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.purchasedOrders[0].userAddress,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.purchasedOrders[0].value,
-                    this.buyerData.value
-                );
-                assert.equal(
-                    this.purchasedOrders[0].isSale,
-                    this.buyerData.isSale
-                );
-                assert.equal(
-                    this.purchasedOrders[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.purchasedOrders[0].acceptsFragmenting,
-                    this.buyerData.acceptsFragmenting
-                );
-                assert.equal(this.purchasedOrders[0].asset, this.asset);
-            });
+            expect(this.purchasedOrders[0].userAddress).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
         });
     });
 
-    context("seller creates a sale order", () => {
-        describe("sale order creation", () => {
-            it("should create a sale order", async () => {
-                assert.equal(this.saleOrders.length, 0);
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.sellerData.isSale,
-                    this.sellerData.userAddress,
-                    this.asset,
-                    this.sellerData.value,
-                    this.sellerData.numberOfShares,
-                    this.sellerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
 
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
 
-                assert.equal(this.saleOrders.length, 1);
+            expect(this.saleOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.saleOrders[0].userAddress,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.saleOrders[0].value, this.sellerData.value);
-                assert.equal(this.saleOrders[0].isSale, this.sellerData.isSale);
-                assert.equal(
-                    this.saleOrders[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
-                assert.equal(
-                    this.saleOrders[0].acceptsFragmenting,
-                    this.sellerData.acceptsFragmenting
-                );
-                assert.equal(this.saleOrders[0].asset, this.asset);
-            });
+            expect(this.saleOrders[0].userAddress, this.sellerData.userAddress);
+            expect(this.saleOrders[0].value, this.sellerData.value);
+            expect(this.saleOrders[0].isSale, this.sellerData.isSale);
+            expect(
+                this.saleOrders[0].numberOfShares,
+                this.sellerData.numberOfShares
+            );
+            expect(
+                this.saleOrders[0].acceptsFragmenting,
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset, this.asset);
         });
     });
 
-    context("transaction creation", () => {
-        describe("transaction creation", () => {
-            it("should create transaction", async () => {
-                assert.equal(this.purchasedOrders.length, 1);
-                assert.equal(this.saleOrders.length, 1);
-                assert.equal(this.transactions.length, 0);
+    describe("transaction creation", () => {
+        it("should create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfTransaction();
+            await this.exchange.realizeOperationOfCreationOfTransaction();
 
-                this.transactions = await this.exchange.returnTransactions();
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.transactions = await this.exchange.returnTransactions();
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                assert.equal(this.transactions.length, 1);
-                assert.equal(this.purchasedOrders.length, 0);
-                assert.equal(this.saleOrders.length, 0);
+            expect(this.transactions.length).to.equal(1);
+            expect(this.purchasedOrders.length).to.equal(0);
+            expect(this.saleOrders.length).to.equal(0);
 
-                assert.equal(
-                    this.transactions[0].buyer,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.transactions[0].seller,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.transactions[0].asset, this.asset);
+            expect(this.transactions[0].buyer).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.transactions[0].seller).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.transactions[0].asset).to.equal(this.asset);
 
-                assert.equal(this.transactions[0].value, this.buyerData.value);
-                assert.equal(this.transactions[0].value, this.sellerData.value);
+            expect(this.transactions[0].value).to.equal(this.buyerData.value);
+            expect(this.transactions[0].value).to.equal(this.sellerData.value);
 
-                assert.equal(
-                    this.transactions[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.transactions[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
+            expect(this.transactions[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.transactions[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
 
-                assert.equal(
-                    this.transactions[0].purchaseOrderIndex,
-                    this.purchaseOrderIndex
-                );
-                assert.equal(
-                    this.transactions[0].saleOrderIndex,
-                    this.saleOrderIndex
-                );
-            });
+            expect(this.transactions[0].purchaseOrderIndex).to.equal(
+                this.purchaseOrderIndex
+            );
+            expect(this.transactions[0].saleOrderIndex).to.equal(
+                this.saleOrderIndex
+            );
         });
     });
 });
 
-contract("Case 5", (accounts) => {
+describe("Case 5", (accounts) => {
     before(async () => {
-        this.exchange = await Exchange.new();
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
         this.asset = "ABC123";
         this.purchasedOrders = [];
         this.saleOrders = [];
@@ -790,95 +712,985 @@ contract("Case 5", (accounts) => {
         );
     });
 
-    context("buyer creates a purchase order", () => {
-        describe("purchase order creation", () => {
-            it("should create a purchase order", async () => {
-                assert.equal(this.purchasedOrders.length, 0);
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.buyerData.isSale,
-                    this.buyerData.userAddress,
-                    this.asset,
-                    this.buyerData.value,
-                    this.buyerData.numberOfShares,
-                    this.buyerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
 
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                assert.equal(this.purchasedOrders.length, 1);
+            expect(this.purchasedOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.purchasedOrders[0].userAddress,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.purchasedOrders[0].value,
-                    this.buyerData.value
-                );
-                assert.equal(
-                    this.purchasedOrders[0].isSale,
-                    this.buyerData.isSale
-                );
-                assert.equal(
-                    this.purchasedOrders[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.purchasedOrders[0].acceptsFragmenting,
-                    this.buyerData.acceptsFragmenting
-                );
-                assert.equal(this.purchasedOrders[0].asset, this.asset);
-            });
+            expect(this.purchasedOrders[0].userAddress).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
         });
     });
 
-    context("seller creates a sale order", () => {
-        describe("sale order creation", () => {
-            it("should create a sale order", async () => {
-                assert.equal(this.saleOrders.length, 0);
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.sellerData.isSale,
-                    this.sellerData.userAddress,
-                    this.asset,
-                    this.sellerData.value,
-                    this.sellerData.numberOfShares,
-                    this.sellerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
 
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
 
-                assert.equal(this.saleOrders.length, 1);
+            expect(this.saleOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.saleOrders[0].userAddress,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.saleOrders[0].value, this.sellerData.value);
-                assert.equal(this.saleOrders[0].isSale, this.sellerData.isSale);
-                assert.equal(
-                    this.saleOrders[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
-                assert.equal(
-                    this.saleOrders[0].acceptsFragmenting,
-                    this.sellerData.acceptsFragmenting
-                );
-                assert.equal(this.saleOrders[0].asset, this.asset);
-            });
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value).to.equal(this.sellerData.value);
+            expect(this.saleOrders[0].isSale).to.equal(this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset).to.equal(this.asset);
         });
     });
 
-    context("transaction creation", () => {
+    describe("transaction creation", () => {
+        it("should create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfTransaction();
+
+            this.transactions = await this.exchange.returnTransactions();
+
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.transactions.length).to.equal(1);
+            expect(this.purchasedOrders.length).to.equal(0);
+            expect(this.saleOrders.length).to.equal(1);
+        });
+    });
+
+    describe("sale order creation", () => {
+        it("should create a sale order with shares rest", async () => {
+            expect(this.transactions[0].buyer).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.transactions[0].seller).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.transactions[0].asset).to.equal(this.asset);
+
+            expect(this.transactions[0].value).to.equal(this.buyerData.value);
+            expect(this.transactions[0].value).to.equal(this.sellerData.value);
+
+            expect(this.transactions[0].numberOfShares).to.equal(100);
+            expect(this.saleOrders[0].numberOfShares).to.equal(50);
+
+            expect(this.transactions[0].purchaseOrderIndex).to.equal(
+                this.purchaseOrderIndex
+            );
+            expect(this.transactions[0].saleOrderIndex).to.equal(
+                this.saleOrderIndex
+            );
+        });
+    });
+});
+
+describe("Case 6", (accounts) => {
+    before(async () => {
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
+        this.asset = "ABC123";
+        this.purchasedOrders = [];
+        this.saleOrders = [];
+        this.transactions = [];
+        this.buyerData = {
+            userAddress: accounts[0],
+            value: 78,
+            numberOfShares: 100,
+            isSale: false,
+            acceptsFragmenting: false,
+        };
+        this.sellerData = {
+            userAddress: accounts[1],
+            value: 78,
+            numberOfShares: 150,
+            isSale: true,
+            acceptsFragmenting: true,
+        };
+        this.purchaseOrderIndex = 1;
+        this.saleOrderIndex = 2;
+    });
+
+    beforeEach(() => {
+        console.log("Before test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    afterEach(() => {
+        console.log("After test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
+
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.purchasedOrders.length).to.equal(1);
+
+            expect(this.purchasedOrders[0].userAddress).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
+
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
+            expect(this.saleOrders.length).to.equal(1);
+
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value).to.equal(this.sellerData.value);
+            expect(this.saleOrders[0].isSale).to.equal(this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("transaction creation", () => {
+        it("should create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfTransaction();
+
+            this.transactions = await this.exchange.returnTransactions();
+
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.transactions.length).to.equal(1);
+            expect(this.purchasedOrders.length).to.equal(0);
+            expect(this.saleOrders.length).to.equal(1);
+        });
+    });
+
+    describe("sale order creation", () => {
+        it("should create a sale order with shares rest", async () => {
+            expect(this.transactions[0].buyer).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.transactions[0].seller).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.transactions[0].asset).to.equal(this.asset);
+
+            expect(this.transactions[0].value).to.equal(this.buyerData.value);
+            expect(this.transactions[0].value).to.equal(this.sellerData.value);
+
+            expect(this.transactions[0].numberOfShares).to.equal(100);
+            expect(this.saleOrders[0].numberOfShares).to.equal(50);
+
+            expect(this.transactions[0].purchaseOrderIndex).to.equal(
+                this.purchaseOrderIndex
+            );
+            expect(this.transactions[0].saleOrderIndex).to.equal(
+                this.saleOrderIndex
+            );
+        });
+    });
+});
+
+describe("Case 7", (accounts) => {
+    before(async () => {
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
+        this.asset = "ABC123";
+        this.purchasedOrders = [];
+        this.saleOrders = [];
+        this.transactions = [];
+        this.buyerData = {
+            userAddress: accounts[0],
+            value: 78,
+            numberOfShares: 100,
+            isSale: false,
+            acceptsFragmenting: true,
+        };
+        this.sellerData = {
+            userAddress: accounts[1],
+            value: 78,
+            numberOfShares: 150,
+            isSale: true,
+            acceptsFragmenting: false,
+        };
+        this.purchaseOrderIndex = 1;
+        this.saleOrderIndex = 2;
+    });
+
+    beforeEach(() => {
+        console.log("Before test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    afterEach(() => {
+        console.log("After test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
+
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.purchasedOrders.length).to.equal(1);
+
+            expect(this.purchasedOrders[0].userAddress).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
+
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
+            expect(this.saleOrders.length).to.equal(1);
+
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value).to.equal(this.sellerData.value);
+            expect(this.saleOrders[0].isSale).to.equal(this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("transaction creation", () => {
+        it("should not create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfTransaction();
+
+            this.transactions = await this.exchange.returnTransactions();
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.transactions.length).to.equal(0);
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+        });
+    });
+});
+
+describe("Case 8", (accounts) => {
+    before(async () => {
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
+        this.asset = "ABC123";
+        this.purchasedOrders = [];
+        this.saleOrders = [];
+        this.transactions = [];
+        this.buyerData = {
+            userAddress: accounts[0],
+            value: 78,
+            numberOfShares: 100,
+            isSale: false,
+            acceptsFragmenting: false,
+        };
+        this.sellerData = {
+            userAddress: accounts[1],
+            value: 78,
+            numberOfShares: 150,
+            isSale: true,
+            acceptsFragmenting: false,
+        };
+        this.purchaseOrderIndex = 1;
+        this.saleOrderIndex = 2;
+    });
+
+    beforeEach(() => {
+        console.log("Before test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    afterEach(() => {
+        console.log("After test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
+
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.purchasedOrders.length).to.equal(1);
+
+            expect(this.purchasedOrders[0].userAddress).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
+
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
+            expect(this.saleOrders.length).to.equal(1);
+
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value).to.equal(this.sellerData.value);
+            expect(this.saleOrders[0].isSale).to.equal(this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("transaction creation", () => {
+        it("should not create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfTransaction();
+
+            this.transactions = await this.exchange.returnTransactions();
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.transactions.length).to.equal(0);
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+        });
+    });
+});
+
+describe("Case 9", (accounts) => {
+    before(async () => {
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
+        this.asset = "ABC123";
+        this.purchasedOrders = [];
+        this.saleOrders = [];
+        this.transactions = [];
+        this.buyerData = {
+            userAddress: accounts[0],
+            value: 78,
+            numberOfShares: 150,
+            isSale: false,
+            acceptsFragmenting: true,
+        };
+        this.sellerData = {
+            userAddress: accounts[1],
+            value: 78,
+            numberOfShares: 100,
+            isSale: true,
+            acceptsFragmenting: true,
+        };
+        this.purchaseOrderIndex = 1;
+        this.saleOrderIndex = 2;
+    });
+
+    beforeEach(() => {
+        console.log("Before test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    afterEach(() => {
+        console.log("After test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
+
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.purchasedOrders.length).to.equal(1);
+
+            expect(this.purchasedOrders[0].userAddress).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
+
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
+            expect(this.saleOrders.length).to.equal(1);
+
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value).to.equal(this.sellerData.value);
+            expect(this.saleOrders[0].isSale).to.equal(this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("transaction creation", () => {
+        it("should create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfTransaction();
+
+            this.transactions = await this.exchange.returnTransactions();
+
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.transactions.length).to.equal(1);
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(0);
+        });
+    });
+
+    describe("sale order creation", () => {
+        it("should create a sale order with shares rest", async () => {
+            expect(this.transactions[0].buyer).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.transactions[0].seller).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.transactions[0].asset).to.equal(this.asset);
+
+            expect(this.transactions[0].value).to.equal(this.buyerData.value);
+            expect(this.transactions[0].value).to.equal(this.sellerData.value);
+
+            expect(this.transactions[0].numberOfShares).to.equal(100);
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(50);
+
+            expect(this.transactions[0].purchaseOrderIndex).to.equal(
+                this.purchaseOrderIndex
+            );
+            expect(this.transactions[0].saleOrderIndex).to.equal(
+                this.saleOrderIndex
+            );
+        });
+    });
+});
+
+describe("Case 10", (accounts) => {
+    before(async () => {
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
+        this.asset = "ABC123";
+        this.purchasedOrders = [];
+        this.saleOrders = [];
+        this.transactions = [];
+        this.buyerData = {
+            userAddress: accounts[0],
+            value: 78,
+            numberOfShares: 150,
+            isSale: false,
+            acceptsFragmenting: false,
+        };
+        this.sellerData = {
+            userAddress: accounts[1],
+            value: 78,
+            numberOfShares: 100,
+            isSale: true,
+            acceptsFragmenting: true,
+        };
+        this.purchaseOrderIndex = 1;
+        this.saleOrderIndex = 2;
+    });
+
+    beforeEach(() => {
+        console.log("Before test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    afterEach(() => {
+        console.log("After test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
+
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.purchasedOrders.length).to.equal(1);
+
+            expect(this.purchasedOrders[0].userAddress).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
+
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
+            expect(this.saleOrders.length).to.equal(1);
+
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value).to.equal(this.sellerData.value);
+            expect(this.saleOrders[0].isSale).to.equal(this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("transaction creation", () => {
+        it("should not create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfTransaction();
+
+            this.transactions = await this.exchange.returnTransactions();
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.transactions.length).to.equal(0);
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+        });
+    });
+});
+
+describe("Case 11", (accounts) => {
+    before(async () => {
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
+        this.asset = "ABC123";
+        this.purchasedOrders = [];
+        this.saleOrders = [];
+        this.transactions = [];
+        this.buyerData = {
+            userAddress: accounts[0],
+            value: 78,
+            numberOfShares: 150,
+            isSale: false,
+            acceptsFragmenting: true,
+        };
+        this.sellerData = {
+            userAddress: accounts[1],
+            value: 78,
+            numberOfShares: 100,
+            isSale: true,
+            acceptsFragmenting: false,
+        };
+        this.purchaseOrderIndex = 1;
+        this.saleOrderIndex = 2;
+    });
+
+    beforeEach(() => {
+        console.log("Before test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    afterEach(() => {
+        console.log("After test");
+        viewListOfOrdersByAssetCode(
+            this.asset,
+            this.purchasedOrders,
+            this.saleOrders
+        );
+    });
+
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
+
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
+
+            expect(this.purchasedOrders.length).to.equal(1);
+
+            expect(this.purchasedOrders[0].userAddress).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
+
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
+
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
+            expect(this.saleOrders.length).to.equal(1);
+
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value).to.equal(this.sellerData.value);
+            expect(this.saleOrders[0].isSale).to.equal(this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset).to.equal(this.asset);
+        });
+    });
+
+    describe("transaction creation", () => {
         describe("transaction creation", () => {
             it("should create transaction", async () => {
-                assert.equal(this.purchasedOrders.length, 1);
-                assert.equal(this.saleOrders.length, 1);
-                assert.equal(this.transactions.length, 0);
+                expect(this.purchasedOrders.length).to.equal(1);
+                expect(this.saleOrders.length).to.equal(1);
+                expect(this.transactions.length).to.equal(0);
 
                 await this.exchange.realizeOperationOfCreationOfTransaction();
 
@@ -891,36 +1703,36 @@ contract("Case 5", (accounts) => {
                 this.purchasedOrders =
                     await this.exchange.returnPurchasedOrders(this.asset);
 
-                assert.equal(this.transactions.length, 1);
-                assert.equal(this.purchasedOrders.length, 0);
-                assert.equal(this.saleOrders.length, 1);
+                expect(this.transactions.length).to.equal(1);
+                expect(this.purchasedOrders.length).to.equal(1);
+                expect(this.saleOrders.length).to.equal(0);
             });
         });
 
         describe("sale order creation", () => {
             it("should create a sale order with shares rest", async () => {
-                assert.equal(
-                    this.transactions[0].buyer,
+                expect(this.transactions[0].buyer).to.equal(
                     this.buyerData.userAddress
                 );
-                assert.equal(
-                    this.transactions[0].seller,
+                expect(this.transactions[0].seller).to.equal(
                     this.sellerData.userAddress
                 );
-                assert.equal(this.transactions[0].asset, this.asset);
+                expect(this.transactions[0].asset).to.equal(this.asset);
 
-                assert.equal(this.transactions[0].value, this.buyerData.value);
-                assert.equal(this.transactions[0].value, this.sellerData.value);
+                expect(this.transactions[0].value).to.equal(
+                    this.buyerData.value
+                );
+                expect(this.transactions[0].value).to.equal(
+                    this.sellerData.value
+                );
 
-                assert.equal(this.transactions[0].numberOfShares, 100);
-                assert.equal(this.saleOrders[0].numberOfShares, 50);
+                expect(this.transactions[0].numberOfShares).to.equal(100);
+                expect(this.purchasedOrders[0].numberOfShares).to.equal(50);
 
-                assert.equal(
-                    this.transactions[0].purchaseOrderIndex,
+                expect(this.transactions[0].purchaseOrderIndex).to.equal(
                     this.purchaseOrderIndex
                 );
-                assert.equal(
-                    this.transactions[0].saleOrderIndex,
+                expect(this.transactions[0].saleOrderIndex).to.equal(
                     this.saleOrderIndex
                 );
             });
@@ -928,9 +1740,12 @@ contract("Case 5", (accounts) => {
     });
 });
 
-contract("Case 6", (accounts) => {
+describe("Case 12", (accounts) => {
     before(async () => {
-        this.exchange = await Exchange.new();
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
         this.asset = "ABC123";
         this.purchasedOrders = [];
         this.saleOrders = [];
@@ -938,16 +1753,16 @@ contract("Case 6", (accounts) => {
         this.buyerData = {
             userAddress: accounts[0],
             value: 78,
-            numberOfShares: 100,
+            numberOfShares: 150,
             isSale: false,
             acceptsFragmenting: false,
         };
         this.sellerData = {
             userAddress: accounts[1],
             value: 78,
-            numberOfShares: 150,
+            numberOfShares: 100,
             isSale: true,
-            acceptsFragmenting: true,
+            acceptsFragmenting: false,
         };
         this.purchaseOrderIndex = 1;
         this.saleOrderIndex = 2;
@@ -971,167 +1786,134 @@ contract("Case 6", (accounts) => {
         );
     });
 
-    context("buyer creates a purchase order", () => {
-        describe("purchase order creation", () => {
-            it("should create a purchase order", async () => {
-                assert.equal(this.purchasedOrders.length, 0);
+    describe("purchase order creation", () => {
+        it("should create a purchase order", async () => {
+            expect(this.purchasedOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.buyerData.isSale,
-                    this.buyerData.userAddress,
-                    this.asset,
-                    this.buyerData.value,
-                    this.buyerData.numberOfShares,
-                    this.buyerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.buyerData.isSale,
+                this.buyerData.userAddress,
+                this.asset,
+                this.buyerData.value,
+                this.buyerData.numberOfShares,
+                this.buyerData.acceptsFragmenting
+            );
 
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                assert.equal(this.purchasedOrders.length, 1);
+            expect(this.purchasedOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.purchasedOrders[0].userAddress,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.purchasedOrders[0].value,
-                    this.buyerData.value
-                );
-                assert.equal(
-                    this.purchasedOrders[0].isSale,
-                    this.buyerData.isSale
-                );
-                assert.equal(
-                    this.purchasedOrders[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.purchasedOrders[0].acceptsFragmenting,
-                    this.buyerData.acceptsFragmenting
-                );
-                assert.equal(this.purchasedOrders[0].asset, this.asset);
-            });
+            expect(this.purchasedOrders[0].userAddress).to.equal(
+                this.buyerData.userAddress
+            );
+            expect(this.purchasedOrders[0].value).to.equal(
+                this.buyerData.value
+            );
+            expect(this.purchasedOrders[0].isSale).to.equal(
+                this.buyerData.isSale
+            );
+            expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                this.buyerData.numberOfShares
+            );
+            expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                this.buyerData.acceptsFragmenting
+            );
+            expect(this.purchasedOrders[0].asset).to.equal(this.asset);
         });
     });
 
-    context("seller creates a sale order", () => {
-        describe("sale order creation", () => {
-            it("should create a sale order", async () => {
-                assert.equal(this.saleOrders.length, 0);
+    describe("sale order creation", () => {
+        it("should create a sale order", async () => {
+            expect(this.saleOrders.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.sellerData.isSale,
-                    this.sellerData.userAddress,
-                    this.asset,
-                    this.sellerData.value,
-                    this.sellerData.numberOfShares,
-                    this.sellerData.acceptsFragmenting
-                );
+            await this.exchange.realizeOperationOfCreationOfOrder(
+                this.sellerData.isSale,
+                this.sellerData.userAddress,
+                this.asset,
+                this.sellerData.value,
+                this.sellerData.numberOfShares,
+                this.sellerData.acceptsFragmenting
+            );
 
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
 
-                assert.equal(this.saleOrders.length, 1);
+            expect(this.saleOrders.length).to.equal(1);
 
-                assert.equal(
-                    this.saleOrders[0].userAddress,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.saleOrders[0].value, this.sellerData.value);
-                assert.equal(this.saleOrders[0].isSale, this.sellerData.isSale);
-                assert.equal(
-                    this.saleOrders[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
-                assert.equal(
-                    this.saleOrders[0].acceptsFragmenting,
-                    this.sellerData.acceptsFragmenting
-                );
-                assert.equal(this.saleOrders[0].asset, this.asset);
-            });
+            expect(this.saleOrders[0].userAddress).to.equal(
+                this.sellerData.userAddress
+            );
+            expect(this.saleOrders[0].value).to.equal(this.sellerData.value);
+            expect(this.saleOrders[0].isSale).to.equal(this.sellerData.isSale);
+            expect(this.saleOrders[0].numberOfShares).to.equal(
+                this.sellerData.numberOfShares
+            );
+            expect(this.saleOrders[0].acceptsFragmenting).to.equal(
+                this.sellerData.acceptsFragmenting
+            );
+            expect(this.saleOrders[0].asset).to.equal(this.asset);
         });
     });
 
-    context("transaction creation", () => {
-        describe("transaction creation", () => {
-            it("should create transaction", async () => {
-                assert.equal(this.purchasedOrders.length, 1);
-                assert.equal(this.saleOrders.length, 1);
-                assert.equal(this.transactions.length, 0);
+    describe("transaction creation", () => {
+        it("should not create transaction", async () => {
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
+            expect(this.transactions.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfTransaction();
+            await this.exchange.realizeOperationOfCreationOfTransaction();
 
-                this.transactions = await this.exchange.returnTransactions();
+            this.transactions = await this.exchange.returnTransactions();
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
-
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
-
-                assert.equal(this.transactions.length, 1);
-                assert.equal(this.purchasedOrders.length, 0);
-                assert.equal(this.saleOrders.length, 1);
-            });
-        });
-
-        describe("sale order creation", () => {
-            it("should create a sale order with shares rest", async () => {
-                assert.equal(
-                    this.transactions[0].buyer,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.transactions[0].seller,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.transactions[0].asset, this.asset);
-
-                assert.equal(this.transactions[0].value, this.buyerData.value);
-                assert.equal(this.transactions[0].value, this.sellerData.value);
-
-                assert.equal(this.transactions[0].numberOfShares, 100);
-                assert.equal(this.saleOrders[0].numberOfShares, 50);
-
-                assert.equal(
-                    this.transactions[0].purchaseOrderIndex,
-                    this.purchaseOrderIndex
-                );
-                assert.equal(
-                    this.transactions[0].saleOrderIndex,
-                    this.saleOrderIndex
-                );
-            });
+            expect(this.transactions.length).to.equal(0);
+            expect(this.purchasedOrders.length).to.equal(1);
+            expect(this.saleOrders.length).to.equal(1);
         });
     });
 });
 
-contract("Case 7", (accounts) => {
+describe("Case 13", (accounts) => {
     before(async () => {
-        this.exchange = await Exchange.new();
+        const Exchange = await ethers.getContractFactory("Exchange");
+        this.exchange = await Exchange.deploy();
+        this.accounts = await ethers.getSigners();
+
         this.asset = "ABC123";
         this.purchasedOrders = [];
         this.saleOrders = [];
         this.transactions = [];
-        this.buyerData = {
-            userAddress: accounts[0],
-            value: 78,
-            numberOfShares: 100,
-            isSale: false,
-            acceptsFragmenting: true,
-        };
-        this.sellerData = {
-            userAddress: accounts[1],
-            value: 78,
-            numberOfShares: 150,
-            isSale: true,
-            acceptsFragmenting: false,
-        };
-        this.purchaseOrderIndex = 1;
-        this.saleOrderIndex = 2;
+        this.buyersData = [
+            {
+                userAddress: this.accounts[1].address,
+                value: 78,
+                numberOfShares: 100,
+                isSale: false,
+                acceptsFragmenting: true,
+            },
+        ];
+        this.sellersData = [
+            {
+                userAddress: this.accounts[2].address,
+                value: 78,
+                numberOfShares: 60,
+                isSale: true,
+                acceptsFragmenting: true,
+            },
+            {
+                userAddress: this.accounts[3].address,
+                value: 78,
+                numberOfShares: 40,
+                isSale: true,
+                acceptsFragmenting: true,
+            },
+        ];
+        this.purchaseOrderIndices = [1];
+        this.saleOrderIndices = [2, 3];
     });
 
     beforeEach(() => {
@@ -1152,259 +1934,115 @@ contract("Case 7", (accounts) => {
         );
     });
 
-    context("buyer creates a purchase order", () => {
-        describe("purchase order creation", () => {
-            it("should create a purchase order", async () => {
-                assert.equal(this.purchasedOrders.length, 0);
+    describe("purchase order creation", () => {
+        it("should create purchase orders", async () => {
+            for (let i = 0; i < this.buyersData.length; i++) {
+                expect(this.purchasedOrders.length).to.equal(i);
 
                 await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.buyerData.isSale,
-                    this.buyerData.userAddress,
+                    this.buyersData[i].isSale,
+                    this.buyersData[i].userAddress,
                     this.asset,
-                    this.buyerData.value,
-                    this.buyerData.numberOfShares,
-                    this.buyerData.acceptsFragmenting
+                    this.buyersData[i].value,
+                    this.buyersData[i].numberOfShares,
+                    this.buyersData[i].acceptsFragmenting
                 );
 
                 this.purchasedOrders =
                     await this.exchange.returnPurchasedOrders(this.asset);
 
-                assert.equal(this.purchasedOrders.length, 1);
+                expect(this.purchasedOrders.length).to.equal(i + 1);
 
-                assert.equal(
-                    this.purchasedOrders[0].userAddress,
-                    this.buyerData.userAddress
+                expect(this.purchasedOrders[0].userAddress).to.equal(
+                    this.buyersData[i].userAddress
                 );
-                assert.equal(
-                    this.purchasedOrders[0].value,
-                    this.buyerData.value
+                expect(this.purchasedOrders[0].value).to.equal(
+                    this.buyersData[i].value
                 );
-                assert.equal(
-                    this.purchasedOrders[0].isSale,
-                    this.buyerData.isSale
+                expect(this.purchasedOrders[0].isSale).to.equal(
+                    this.buyersData[i].isSale
                 );
-                assert.equal(
-                    this.purchasedOrders[0].numberOfShares,
-                    this.buyerData.numberOfShares
+                expect(this.purchasedOrders[0].numberOfShares).to.equal(
+                    this.buyersData[i].numberOfShares
                 );
-                assert.equal(
-                    this.purchasedOrders[0].acceptsFragmenting,
-                    this.buyerData.acceptsFragmenting
+                expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
+                    this.buyersData[i].acceptsFragmenting
                 );
-                assert.equal(this.purchasedOrders[0].asset, this.asset);
-            });
+                expect(this.purchasedOrders[0].asset).to.equal(this.asset);
+            }
         });
     });
 
-    context("seller creates a sale order", () => {
-        describe("sale order creation", () => {
-            it("should create a sale order", async () => {
-                assert.equal(this.saleOrders.length, 0);
+    describe("sale order creation", () => {
+        it("should create sale orders", async () => {
+            for (let i = 0; i < this.sellersData.length; i++) {
+                expect(this.saleOrders.length).to.equal(i);
 
                 await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.sellerData.isSale,
-                    this.sellerData.userAddress,
+                    this.sellersData[i].isSale,
+                    this.sellersData[i].userAddress,
                     this.asset,
-                    this.sellerData.value,
-                    this.sellerData.numberOfShares,
-                    this.sellerData.acceptsFragmenting
+                    this.sellersData[i].value,
+                    this.sellersData[i].numberOfShares,
+                    this.sellersData[i].acceptsFragmenting
                 );
 
                 this.saleOrders = await this.exchange.returnSaleOrders(
                     this.asset
                 );
 
-                assert.equal(this.saleOrders.length, 1);
+                expect(this.saleOrders.length).to.equal(i + 1);
 
-                assert.equal(
-                    this.saleOrders[0].userAddress,
-                    this.sellerData.userAddress
+                expect(this.saleOrders[i].userAddress).to.equal(
+                    this.sellersData[i].userAddress
                 );
-                assert.equal(this.saleOrders[0].value, this.sellerData.value);
-                assert.equal(this.saleOrders[0].isSale, this.sellerData.isSale);
-                assert.equal(
-                    this.saleOrders[0].numberOfShares,
-                    this.sellerData.numberOfShares
+                expect(this.saleOrders[i].value).to.equal(
+                    this.sellersData[i].value
                 );
-                assert.equal(
-                    this.saleOrders[0].acceptsFragmenting,
-                    this.sellerData.acceptsFragmenting
+                expect(this.saleOrders[i].isSale).to.equal(
+                    this.sellersData[i].isSale
                 );
-                assert.equal(this.saleOrders[0].asset, this.asset);
-            });
+                expect(this.saleOrders[i].numberOfShares).to.equal(
+                    this.sellersData[i].numberOfShares
+                );
+                expect(this.saleOrders[i].acceptsFragmenting).to.equal(
+                    this.sellersData[i].acceptsFragmenting
+                );
+                expect(this.saleOrders[i].asset).to.equal(this.asset);
+            }
         });
     });
 
-    context("transaction creation", () => {
-        describe("transaction creation", () => {
-            it("should not create transaction", async () => {
-                assert.equal(this.purchasedOrders.length, 1);
-                assert.equal(this.saleOrders.length, 1);
-                assert.equal(this.transactions.length, 0);
+    describe("transaction creation", () => {
+        it("should create transaction", async () => {
+            console.log(
+                await ethers.provider.getCode(this.accounts[1].address)
+            );
+            console.log(
+                await ethers.provider.getCode(this.accounts[2].address)
+            );
+            console.log(
+                await ethers.provider.getCode(this.accounts[3].address)
+            );
+            expect(this.purchasedOrders.length).to.equal(
+                this.buyersData.length
+            );
+            expect(this.saleOrders.length).to.equal(this.sellersData.length);
+            expect(this.transactions.length).to.equal(0);
 
-                await this.exchange.realizeOperationOfCreationOfTransaction();
+            await this.exchange.realizeOperationOfCreationOfTransaction();
 
-                this.transactions = await this.exchange.returnTransactions();
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
+            this.transactions = await this.exchange.returnTransactions();
 
-                assert.equal(this.transactions.length, 0);
-                assert.equal(this.purchasedOrders.length, 1);
-                assert.equal(this.saleOrders.length, 1);
-            });
-        });
-    });
-});
+            this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
 
-contract("Case 8", (accounts) => {
-    before(async () => {
-        this.exchange = await Exchange.new();
-        this.asset = "ABC123";
-        this.purchasedOrders = [];
-        this.saleOrders = [];
-        this.transactions = [];
-        this.buyerData = {
-            userAddress: accounts[0],
-            value: 78,
-            numberOfShares: 100,
-            isSale: false,
-            acceptsFragmenting: false,
-        };
-        this.sellerData = {
-            userAddress: accounts[1],
-            value: 78,
-            numberOfShares: 150,
-            isSale: true,
-            acceptsFragmenting: false,
-        };
-        this.purchaseOrderIndex = 1;
-        this.saleOrderIndex = 2;
-    });
+            this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+                this.asset
+            );
 
-    beforeEach(() => {
-        console.log("Before test");
-        viewListOfOrdersByAssetCode(
-            this.asset,
-            this.purchasedOrders,
-            this.saleOrders
-        );
-    });
-
-    afterEach(() => {
-        console.log("After test");
-        viewListOfOrdersByAssetCode(
-            this.asset,
-            this.purchasedOrders,
-            this.saleOrders
-        );
-    });
-
-    context("buyer creates a purchase order", () => {
-        describe("purchase order creation", () => {
-            it("should create a purchase order", async () => {
-                assert.equal(this.purchasedOrders.length, 0);
-
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.buyerData.isSale,
-                    this.buyerData.userAddress,
-                    this.asset,
-                    this.buyerData.value,
-                    this.buyerData.numberOfShares,
-                    this.buyerData.acceptsFragmenting
-                );
-
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
-
-                assert.equal(this.purchasedOrders.length, 1);
-
-                assert.equal(
-                    this.purchasedOrders[0].userAddress,
-                    this.buyerData.userAddress
-                );
-                assert.equal(
-                    this.purchasedOrders[0].value,
-                    this.buyerData.value
-                );
-                assert.equal(
-                    this.purchasedOrders[0].isSale,
-                    this.buyerData.isSale
-                );
-                assert.equal(
-                    this.purchasedOrders[0].numberOfShares,
-                    this.buyerData.numberOfShares
-                );
-                assert.equal(
-                    this.purchasedOrders[0].acceptsFragmenting,
-                    this.buyerData.acceptsFragmenting
-                );
-                assert.equal(this.purchasedOrders[0].asset, this.asset);
-            });
-        });
-    });
-
-    context("seller creates a sale order", () => {
-        describe("sale order creation", () => {
-            it("should create a sale order", async () => {
-                assert.equal(this.saleOrders.length, 0);
-
-                await this.exchange.realizeOperationOfCreationOfOrder(
-                    this.sellerData.isSale,
-                    this.sellerData.userAddress,
-                    this.asset,
-                    this.sellerData.value,
-                    this.sellerData.numberOfShares,
-                    this.sellerData.acceptsFragmenting
-                );
-
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
-
-                assert.equal(this.saleOrders.length, 1);
-
-                assert.equal(
-                    this.saleOrders[0].userAddress,
-                    this.sellerData.userAddress
-                );
-                assert.equal(this.saleOrders[0].value, this.sellerData.value);
-                assert.equal(this.saleOrders[0].isSale, this.sellerData.isSale);
-                assert.equal(
-                    this.saleOrders[0].numberOfShares,
-                    this.sellerData.numberOfShares
-                );
-                assert.equal(
-                    this.saleOrders[0].acceptsFragmenting,
-                    this.sellerData.acceptsFragmenting
-                );
-                assert.equal(this.saleOrders[0].asset, this.asset);
-            });
-        });
-    });
-
-    context("transaction creation", () => {
-        describe("transaction creation", () => {
-            it("should not create transaction", async () => {
-                assert.equal(this.purchasedOrders.length, 1);
-                assert.equal(this.saleOrders.length, 1);
-                assert.equal(this.transactions.length, 0);
-
-                await this.exchange.realizeOperationOfCreationOfTransaction();
-
-                this.transactions = await this.exchange.returnTransactions();
-                this.saleOrders = await this.exchange.returnSaleOrders(
-                    this.asset
-                );
-                this.purchasedOrders =
-                    await this.exchange.returnPurchasedOrders(this.asset);
-
-                assert.equal(this.transactions.length, 0);
-                assert.equal(this.purchasedOrders.length, 1);
-                assert.equal(this.saleOrders.length, 1);
-            });
+            expect(this.transactions.length).to.equal(2);
+            expect(this.purchasedOrders.length).to.equal(0);
+            expect(this.saleOrders.length).to.equal(0);
         });
     });
 });
