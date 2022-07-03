@@ -35,14 +35,14 @@ describe("Case 1", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 100,
             isSale: false,
             acceptsFragmenting: true,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 100,
             isSale: true,
@@ -198,14 +198,14 @@ describe("Case 2", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 100,
             isSale: false,
             acceptsFragmenting: false,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 100,
             isSale: true,
@@ -357,14 +357,14 @@ describe("Case 3", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 100,
             isSale: false,
             acceptsFragmenting: true,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 100,
             isSale: true,
@@ -515,14 +515,14 @@ describe("Case 4", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 100,
             isSale: false,
             acceptsFragmenting: false,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 100,
             isSale: true,
@@ -677,14 +677,14 @@ describe("Case 5", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 100,
             isSale: false,
             acceptsFragmenting: true,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 150,
             isSale: true,
@@ -841,14 +841,14 @@ describe("Case 6", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 100,
             isSale: false,
             acceptsFragmenting: false,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 150,
             isSale: true,
@@ -1005,14 +1005,14 @@ describe("Case 7", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 100,
             isSale: false,
             acceptsFragmenting: true,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 150,
             isSale: true,
@@ -1142,14 +1142,14 @@ describe("Case 8", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 100,
             isSale: false,
             acceptsFragmenting: false,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 150,
             isSale: true,
@@ -1279,14 +1279,14 @@ describe("Case 9", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 150,
             isSale: false,
             acceptsFragmenting: true,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 100,
             isSale: true,
@@ -1443,14 +1443,14 @@ describe("Case 10", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 150,
             isSale: false,
             acceptsFragmenting: false,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 100,
             isSale: true,
@@ -1580,14 +1580,14 @@ describe("Case 11", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 150,
             isSale: false,
             acceptsFragmenting: true,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 100,
             isSale: true,
@@ -1751,14 +1751,14 @@ describe("Case 12", (accounts) => {
         this.saleOrders = [];
         this.transactions = [];
         this.buyerData = {
-            userAddress: accounts[0],
+            userAddress: this.accounts[1].address,
             value: 78,
             numberOfShares: 150,
             isSale: false,
             acceptsFragmenting: false,
         };
         this.sellerData = {
-            userAddress: accounts[1],
+            userAddress: this.accounts[2].address,
             value: 78,
             numberOfShares: 100,
             isSale: true,
