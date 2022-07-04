@@ -188,7 +188,7 @@ contract Exchange {
         uint256 value,
         uint256 numberOfShares,
         bool acceptsFragmenting
-    ) public returns (bool) {
+    ) public returns (Order memory) {
         if (!existsAsset(asset)) {
             addAsset(asset);
         }
@@ -220,7 +220,7 @@ contract Exchange {
                 numberOfPurchasedOrdersByAssets[asset] += 1;
             }
 
-            return true;
+            return order;
         }
 
         uint256 firstNode;
@@ -239,7 +239,7 @@ contract Exchange {
 
                 numberOfSaleOrdersByAssets[asset] += 1;
 
-                return true;
+                return order;
             }
         } else {
             if (value > orders[firstNode - 1].value) {
@@ -248,7 +248,7 @@ contract Exchange {
 
                 numberOfPurchasedOrdersByAssets[asset] += 1;
 
-                return true;
+                return order;
             }
         }
 
@@ -266,7 +266,7 @@ contract Exchange {
 
                     numberOfSaleOrdersByAssets[asset] += 1;
 
-                    return true;
+                    return order;
                 }
             } else {
                 if (value > orders[_order - 1].value) {
@@ -277,7 +277,7 @@ contract Exchange {
 
                     numberOfPurchasedOrdersByAssets[asset] += 1;
 
-                    return true;
+                    return order;
                 }
             }
 
@@ -303,7 +303,7 @@ contract Exchange {
             numberOfPurchasedOrdersByAssets[asset] += 1;
         }
 
-        return true;
+        return order;
     }
 
     function returnSaleOrders(string memory asset)
@@ -359,8 +359,15 @@ contract Exchange {
             Order[] memory saleOrders = returnSaleOrders(asset);
             Order[] memory purchasedOrders = returnPurchasedOrders(asset);
 
-            for (uint256 j = 0; j < saleOrders.length; j++) {
-                for (uint256 h = 0; h < purchasedOrders.length; h++) {
+            uint256 numberOfSaleOrders = saleOrders.length;
+            uint256 numberOfPurchasedOrders = purchasedOrders.length;
+
+            uint256 j = 0;
+
+            while (j < numberOfSaleOrders) {
+                uint256 h = 0;
+
+                while (h < numberOfPurchasedOrders) {
                     Order memory saleOrder = saleOrders[j];
                     Order memory purchasedOrder = purchasedOrders[h];
 
@@ -373,9 +380,11 @@ contract Exchange {
                                 purchasedOrder.numberOfShares,
                             saleOrder.numberOfShares !=
                                 purchasedOrder.numberOfShares
-                        )
+                        ) &&
+                        returnOrderByOrderIndex(saleOrder.index).isActive &&
+                        returnOrderByOrderIndex(purchasedOrder.index).isActive
                     ) {
-                        uint256 numberOfShares = saleOrder.numberOfShares >
+                        uint256 minimunOfShares = saleOrder.numberOfShares >
                             purchasedOrder.numberOfShares
                             ? purchasedOrder.numberOfShares
                             : saleOrder.numberOfShares;
@@ -385,7 +394,7 @@ contract Exchange {
                             purchasedOrder.userAddress,
                             asset,
                             saleOrder.value,
-                            numberOfShares,
+                            minimunOfShares,
                             saleOrder.index,
                             purchasedOrder.index
                         );
@@ -396,28 +405,35 @@ contract Exchange {
                             saleOrder.numberOfShares >
                             purchasedOrder.numberOfShares
                         ) {
-                            realizeOperationOfCreationOfOrder(
-                                saleOrder.isSale,
-                                saleOrder.userAddress,
-                                saleOrder.asset,
-                                saleOrder.value,
-                                saleOrder.numberOfShares - numberOfShares,
-                                saleOrder.acceptsFragmenting
-                            );
-                        }
+                            Order
+                                memory order = realizeOperationOfCreationOfOrder(
+                                    saleOrder.isSale,
+                                    saleOrder.userAddress,
+                                    saleOrder.asset,
+                                    saleOrder.value,
+                                    saleOrder.numberOfShares - minimunOfShares,
+                                    saleOrder.acceptsFragmenting
+                                );
 
-                        if (
+                            saleOrders[j] = order;
+                            // numberOfSaleOrders++;
+                        } else if (
                             purchasedOrder.numberOfShares >
                             saleOrder.numberOfShares
                         ) {
-                            realizeOperationOfCreationOfOrder(
-                                purchasedOrder.isSale,
-                                purchasedOrder.userAddress,
-                                purchasedOrder.asset,
-                                purchasedOrder.value,
-                                purchasedOrder.numberOfShares - numberOfShares,
-                                purchasedOrder.acceptsFragmenting
-                            );
+                            Order
+                                memory order = realizeOperationOfCreationOfOrder(
+                                    purchasedOrder.isSale,
+                                    purchasedOrder.userAddress,
+                                    purchasedOrder.asset,
+                                    purchasedOrder.value,
+                                    purchasedOrder.numberOfShares -
+                                        minimunOfShares,
+                                    purchasedOrder.acceptsFragmenting
+                                );
+
+                            purchasedOrders[h] = order;
+                            // numberOfPurchasedOrders++;
                         }
 
                         orders[returnPositionOfOrderInArray(saleOrder.index)]
@@ -430,9 +446,23 @@ contract Exchange {
                         numberOfPurchasedOrdersByAssets[
                             purchasedOrder.asset
                         ] -= 1;
+
+                        h = numberOfPurchasedOrders;
                     }
+
+                    h++;
                 }
+
+                j++;
             }
         }
+    }
+
+    function returnNumberOfPurchasedOrdersByAssets(string memory asset)
+        public
+        view
+        returns (uint256)
+    {
+        return numberOfPurchasedOrdersByAssets[asset];
     }
 }

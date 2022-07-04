@@ -2015,15 +2015,6 @@ describe("Case 13", (accounts) => {
 
     describe("transaction creation", () => {
         it("should create transaction", async () => {
-            console.log(
-                await ethers.provider.getCode(this.accounts[1].address)
-            );
-            console.log(
-                await ethers.provider.getCode(this.accounts[2].address)
-            );
-            console.log(
-                await ethers.provider.getCode(this.accounts[3].address)
-            );
             expect(this.purchasedOrders.length).to.equal(
                 this.buyersData.length
             );
@@ -2039,10 +2030,17 @@ describe("Case 13", (accounts) => {
             this.purchasedOrders = await this.exchange.returnPurchasedOrders(
                 this.asset
             );
+            // this.numberOfPurchasedOrders =
+            //     await this.exchange.returnNumberOfPurchasedOrdersByAssets(
+            //         this.asset
+            //     );
+
+            // const orders = await this.exchange.returnOrders();
+            // console.log(orders);
 
             expect(this.transactions.length).to.equal(2);
-            expect(this.purchasedOrders.length).to.equal(0);
             expect(this.saleOrders.length).to.equal(0);
+            expect(this.purchasedOrders.length).to.equal(0);
         });
     });
 });
