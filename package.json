@@ -7,8 +7,8 @@
         "truffle": "^5.4.29"
     },
     "scripts": {
-        "test": "truffle test",
-        "test:cases": "truffle test src/test/TestCases.js"
+        "test": "hardhat test",
+        "test:cases": "hardhat test src/test/TestCases.js"
     },
     "devDependencies": {
         "@nomiclabs/hardhat-ethers": "^2.0.0",
