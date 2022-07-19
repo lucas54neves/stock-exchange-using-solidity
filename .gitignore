@@ -1,3 +1,11 @@
 node_modules
 build
-yarn.lock
+.env
+coverage
+coverage.json
+typechain
+yarn-error.log
+
+#Hardhat files
+cache
+artifacts
