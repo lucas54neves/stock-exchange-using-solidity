@@ -465,4 +465,12 @@ contract Exchange {
     {
         return numberOfPurchasedOrdersByAssets[asset];
     }
+
+    function returnNumberOfSaleOrdersByAssets(string memory asset)
+        public
+        view
+        returns (uint256)
+    {
+        return numberOfSaleOrdersByAssets[asset];
+    }
 }
