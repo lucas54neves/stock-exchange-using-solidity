@@ -1,6 +1,6 @@
-const { ethers } = require("hardhat");
-const { expect } = require("chai");
-const { testsData } = require("./data");
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { testsData } = require('./data');
 
 function viewListOfOrdersByAssetCode(asset, purchasedOrders, saleOrders) {
   const maximumLength = Math.max(purchasedOrders.length, saleOrders.length);
@@ -12,32 +12,32 @@ function viewListOfOrdersByAssetCode(asset, purchasedOrders, saleOrders) {
   }
 
   console.log(`Asset: ${asset}`);
-  console.log("Qtd\tCompra\tVenda\tQtd");
+  console.log('Qtd\tCompra\tVenda\tQtd');
 
   for (const order of orders) {
     console.log(
-      `${order[0] ? order[0].numberOfShares : ""}\t${
-        order[0] ? order[0].value : ""
-      }\t${order[1] ? order[1].value : ""}\t${
-        order[1] ? order[1].numberOfShares : ""
+      `${order[0] ? order[0].numberOfShares : ''}\t${
+        order[0] ? order[0].value : ''
+      }\t${order[1] ? order[1].value : ''}\t${
+        order[1] ? order[1].numberOfShares : ''
       }`
     );
   }
 }
 
 const separator =
-  "====================================================================================================";
+  '====================================================================================================';
 
 for (const data of testsData) {
   describe(`${separator}\n\n${data.testName}: ${
-    data.description ? data.description : ""
+    data.description ? data.description : ''
   }`, () => {
     before(async () => {
-      const Exchange = await ethers.getContractFactory("Exchange");
+      const Exchange = await ethers.getContractFactory('Exchange');
       this.exchange = await Exchange.deploy();
       this.accounts = await ethers.getSigners();
 
-      this.asset = "ABC123";
+      this.asset = 'ABC123';
       this.purchasedOrders = [];
       this.saleOrders = [];
       this.transactions = [];
@@ -45,7 +45,7 @@ for (const data of testsData) {
 
     beforeEach(() => {
       console.log();
-      console.log("Before test");
+      console.log('Before test');
       viewListOfOrdersByAssetCode(
         this.asset,
         this.purchasedOrders,
@@ -56,7 +56,7 @@ for (const data of testsData) {
 
     afterEach(() => {
       console.log();
-      console.log("After test");
+      console.log('After test');
       viewListOfOrdersByAssetCode(
         this.asset,
         this.purchasedOrders,
@@ -65,8 +65,8 @@ for (const data of testsData) {
       console.log();
     });
 
-    describe("\nPurchase order creation", () => {
-      it("should create purchase orders", async () => {
+    describe('\nPurchase order creation', () => {
+      it('should create purchase orders', async () => {
         for (let i = 0; i < data.buyers.length; i++) {
           expect(this.purchasedOrders.length).to.equal(i);
 
@@ -76,7 +76,8 @@ for (const data of testsData) {
             data.asset,
             data.buyers[i].value,
             data.buyers[i].numberOfShares,
-            data.buyers[i].acceptsFragmenting
+            data.buyers[i].acceptsFragmenting,
+            data.buyers[i].isPassive
           );
 
           this.purchasedOrders = await this.exchange.returnPurchasedOrders(
@@ -98,13 +99,16 @@ for (const data of testsData) {
           expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
             data.buyers[i].acceptsFragmenting
           );
+          expect(this.purchasedOrders[0].isPassive).to.equal(
+            data.buyers[i].isPassive
+          );
           expect(this.purchasedOrders[0].asset).to.equal(data.asset);
         }
       });
     });
 
-    describe("\nSale order creation", () => {
-      it("should create sale orders", async () => {
+    describe('\nSale order creation', () => {
+      it('should create sale orders', async () => {
         for (let i = 0; i < data.sellers.length; i++) {
           expect(this.saleOrders.length).to.equal(i);
 
@@ -114,7 +118,8 @@ for (const data of testsData) {
             data.asset,
             data.sellers[i].value,
             data.sellers[i].numberOfShares,
-            data.sellers[i].acceptsFragmenting
+            data.sellers[i].acceptsFragmenting,
+            data.sellers[i].isPassive
           );
 
           this.saleOrders = await this.exchange.returnSaleOrders(data.asset);
@@ -132,16 +137,19 @@ for (const data of testsData) {
           expect(this.saleOrders[i].acceptsFragmenting).to.equal(
             data.sellers[i].acceptsFragmenting
           );
+          expect(this.saleOrders[i].isPassive).to.equal(
+            data.sellers[i].isPassive
+          );
           expect(this.saleOrders[i].asset).to.equal(data.asset);
         }
       });
     });
 
-    describe("\nTransaction creation", () => {
+    describe('\nTransaction creation', () => {
       it(
         data.shouldCreateTransaction
-          ? "should create transaction"
-          : "should not create transaction",
+          ? 'should create transaction'
+          : 'should not create transaction',
         async () => {
           expect(this.purchasedOrders.length).to.equal(data.buyers.length);
           expect(this.saleOrders.length).to.equal(data.sellers.length);
@@ -194,6 +202,9 @@ for (const data of testsData) {
             expect(this.purchasedOrders[i].acceptsFragmenting).to.equal(
               data.finalOrders.purchasedOrders[i].acceptsFragmenting
             );
+            expect(this.purchasedOrders[i].isPassive).to.equal(
+              data.finalOrders.purchasedOrders[i].isPassive
+            );
           }
           expect(this.numberOfPurchasedOrders).to.equal(
             data.finalOrders.purchasedOrders.length
@@ -214,6 +225,9 @@ for (const data of testsData) {
             );
             expect(this.saleOrders[i].acceptsFragmenting).to.equal(
               data.finalOrders.saleOrders[i].acceptsFragmenting
+            );
+            expect(this.saleOrders[i].isPassive).to.equal(
+              data.finalOrders.saleOrders[i].isPassive
             );
           }
           expect(this.numberOfSaleOrders).to.equal(

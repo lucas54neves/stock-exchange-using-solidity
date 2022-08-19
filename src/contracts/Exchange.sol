@@ -12,6 +12,7 @@ contract Exchange {
         uint256 numberOfShares;
         bool acceptsFragmenting;
         bool isActive;
+        bool isPassive;
     }
 
     struct Transaction {
@@ -69,7 +70,8 @@ contract Exchange {
         string memory asset,
         uint256 value,
         uint256 numberOfShares,
-        bool acceptsFragmenting
+        bool acceptsFragmenting,
+        bool isPassive
     ) public view returns (Order memory) {
         return
             Order({
@@ -81,7 +83,8 @@ contract Exchange {
                 numberOfShares: numberOfShares,
                 createdAt: block.timestamp, // require view-type function
                 acceptsFragmenting: acceptsFragmenting,
-                isActive: true
+                isActive: true,
+                isPassive: isPassive
             });
     }
 
@@ -187,7 +190,8 @@ contract Exchange {
         string memory asset,
         uint256 value,
         uint256 numberOfShares,
-        bool acceptsFragmenting
+        bool acceptsFragmenting,
+        bool isPassive
     ) public returns (Order memory) {
         if (!existsAsset(asset)) {
             addAsset(asset);
@@ -201,7 +205,8 @@ contract Exchange {
             asset,
             value,
             numberOfShares,
-            acceptsFragmenting
+            acceptsFragmenting,
+            isPassive
         );
 
         addOrder(order);
@@ -301,6 +306,10 @@ contract Exchange {
             purchasedOrdersMappingByAssets[asset][orderIndex] = 0;
 
             numberOfPurchasedOrdersByAssets[asset] += 1;
+        }
+
+        if (!isPassive) {
+            realizeOperationOfCreationOfTransaction();
         }
 
         return order;
@@ -412,7 +421,8 @@ contract Exchange {
                                     saleOrder.asset,
                                     saleOrder.value,
                                     saleOrder.numberOfShares - minimunOfShares,
-                                    saleOrder.acceptsFragmenting
+                                    saleOrder.acceptsFragmenting,
+                                    saleOrder.isPassive
                                 );
 
                             saleOrders[j] = order;
@@ -429,7 +439,8 @@ contract Exchange {
                                     purchasedOrder.value,
                                     purchasedOrder.numberOfShares -
                                         minimunOfShares,
-                                    purchasedOrder.acceptsFragmenting
+                                    purchasedOrder.acceptsFragmenting,
+                                    purchasedOrder.isPassive
                                 );
 
                             purchasedOrders[h] = order;
