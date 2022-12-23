@@ -1,46 +1,28 @@
-const { ethers } = require('hardhat');
+const { getExchange, viewListOfOrdersByAssetCode } = require('./utils');
 const { expect } = require('chai');
 const { testsData } = require('./data');
 
-function viewListOfOrdersByAssetCode(asset, purchasedOrders, saleOrders) {
-  const maximumLength = Math.max(purchasedOrders.length, saleOrders.length);
-
-  const orders = [];
-
-  for (let i = 0; i < maximumLength; i++) {
-    orders.push([purchasedOrders[i], saleOrders[i]]);
-  }
-
-  console.log(`Asset: ${asset}`);
-  console.log('Qtd\tCompra\tVenda\tQtd');
-
-  for (const order of orders) {
-    console.log(
-      `${order[0] ? order[0].numberOfShares : ''}\t${
-        order[0] ? order[0].value : ''
-      }\t${order[1] ? order[1].value : ''}\t${
-        order[1] ? order[1].numberOfShares : ''
-      }`
-    );
-  }
-}
-
-const separator =
-  '====================================================================================================';
-
 for (const data of testsData) {
-  describe(`${separator}\n\n${data.testName}: ${
-    data.description ? data.description : ''
-  }`, () => {
+  describe(data.testName, () => {
     before(async () => {
-      const Exchange = await ethers.getContractFactory('Exchange');
-      this.exchange = await Exchange.deploy();
-      this.accounts = await ethers.getSigners();
-
       this.asset = 'ABC123';
-      this.purchasedOrders = [];
-      this.saleOrders = [];
+
+      const { exchange, accounts } = await getExchange(this.asset);
+
+      this.exchange = exchange;
+      this.accounts = accounts;
+
+      this.orders = await this.exchange.returnOrders();
+      this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+        this.asset
+      );
+      this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
       this.transactions = [];
+
+      this.initialNumberOfOrders = this.orders.length;
+      this.initialNumberOfPurchasedOrders = this.purchasedOrders.length;
+      this.initialNumberOfSaleOrders = this.saleOrders.length;
     });
 
     beforeEach(() => {
@@ -65,176 +47,170 @@ for (const data of testsData) {
       console.log();
     });
 
-    describe('\nPurchase order creation', () => {
-      it('should create purchase orders', async () => {
-        for (let i = 0; i < data.buyers.length; i++) {
-          expect(this.purchasedOrders.length).to.equal(i);
-
-          await this.exchange.realizeOperationOfCreationOfOrder(
-            data.buyers[i].isSale,
-            this.accounts[i + 1].address,
-            data.asset,
-            data.buyers[i].value,
-            data.buyers[i].numberOfShares,
-            data.buyers[i].acceptsFragmenting,
-            data.buyers[i].isPassive
-          );
-
-          this.purchasedOrders = await this.exchange.returnPurchasedOrders(
-            data.asset
-          );
-
-          expect(this.purchasedOrders.length).to.equal(i + 1);
-
-          expect(this.purchasedOrders[0].userAddress).to.equal(
-            this.accounts[i + 1].address
-          );
-          expect(this.purchasedOrders[0].value).to.equal(data.buyers[i].value);
-          expect(this.purchasedOrders[0].isSale).to.equal(
-            data.buyers[i].isSale
-          );
-          expect(this.purchasedOrders[0].numberOfShares).to.equal(
-            data.buyers[i].numberOfShares
-          );
-          expect(this.purchasedOrders[0].acceptsFragmenting).to.equal(
-            data.buyers[i].acceptsFragmenting
-          );
-          expect(this.purchasedOrders[0].isPassive).to.equal(
-            data.buyers[i].isPassive
-          );
-          expect(this.purchasedOrders[0].asset).to.equal(data.asset);
-        }
-      });
+    it('should be orders default', async () => {
+      expect(this.initialNumberOfOrders).to.not.equal(0);
+      expect(this.initialNumberOfPurchasedOrders).to.not.equal(0);
+      expect(this.initialNumberOfSaleOrders).to.not.equal(0);
     });
 
-    describe('\nSale order creation', () => {
-      it('should create sale orders', async () => {
-        for (let i = 0; i < data.sellers.length; i++) {
-          expect(this.saleOrders.length).to.equal(i);
+    it('should be enable to create a purchased order', async () => {
+      for (let i = 0; i < data.buyers.length; i++) {
+        expect(this.purchasedOrders.length).to.equal(
+          this.initialNumberOfPurchasedOrders + i
+        );
 
-          await this.exchange.realizeOperationOfCreationOfOrder(
-            data.sellers[i].isSale,
-            this.accounts[i + 1].address,
-            data.asset,
-            data.sellers[i].value,
-            data.sellers[i].numberOfShares,
-            data.sellers[i].acceptsFragmenting,
-            data.sellers[i].isPassive
-          );
+        const order = {
+          index: this.purchasedOrders.length + 1,
+          isSale: data.buyers[i].isSale,
+          userAddress: this.accounts[i + 1].address,
+          asset: data.asset,
+          value: data.buyers[i].value,
+          numberOfShares: data.buyers[i].numberOfShares,
+          acceptsFragmenting: data.buyers[i].acceptsFragmenting,
+        };
 
-          this.saleOrders = await this.exchange.returnSaleOrders(data.asset);
+        await this.exchange.realizeOperationOfCreationOfOrder(
+          order.isSale,
+          order.userAddress,
+          order.asset,
+          order.value,
+          order.numberOfShares,
+          order.acceptsFragmenting
+        );
 
-          expect(this.saleOrders.length).to.equal(i + 1);
+        this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+          this.asset
+        );
 
-          expect(this.saleOrders[i].userAddress).to.equal(
-            this.accounts[i + 1].address
-          );
-          expect(this.saleOrders[i].value).to.equal(data.sellers[i].value);
-          expect(this.saleOrders[i].isSale).to.equal(data.sellers[i].isSale);
-          expect(this.saleOrders[i].numberOfShares).to.equal(
-            data.sellers[i].numberOfShares
-          );
-          expect(this.saleOrders[i].acceptsFragmenting).to.equal(
-            data.sellers[i].acceptsFragmenting
-          );
-          expect(this.saleOrders[i].isPassive).to.equal(
-            data.sellers[i].isPassive
-          );
-          expect(this.saleOrders[i].asset).to.equal(data.asset);
-        }
-      });
+        const newOrder = {
+          index: this.purchasedOrders[order.index - 1].index,
+          isSale: this.purchasedOrders[order.index - 1].isSale,
+          userAddress: this.purchasedOrders[order.index - 1].userAddress,
+          asset: this.purchasedOrders[order.index - 1].asset,
+          value: this.purchasedOrders[order.index - 1].value,
+          numberOfShares: this.purchasedOrders[order.index - 1].numberOfShares,
+          acceptsFragmenting:
+            this.purchasedOrders[order.index - 1].acceptsFragmenting,
+        };
+
+        this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+          order.asset
+        );
+
+        expect(this.purchasedOrders.length).to.equal(order.index);
+
+        expect(order.isSale).to.equal(newOrder.isSale);
+        expect(order.userAddress).to.equal(newOrder.userAddress);
+        expect(order.value).to.equal(newOrder.value);
+        expect(order.asset).to.equal(newOrder.asset);
+        expect(order.numberOfShares).to.equal(newOrder.numberOfShares);
+        expect(order.acceptsFragmenting).to.equal(newOrder.acceptsFragmenting);
+      }
     });
 
-    describe('\nTransaction creation', () => {
-      it(
-        data.shouldCreateTransaction
-          ? 'should create transaction'
-          : 'should not create transaction',
-        async () => {
-          expect(this.purchasedOrders.length).to.equal(data.buyers.length);
-          expect(this.saleOrders.length).to.equal(data.sellers.length);
-          expect(this.transactions.length).to.equal(0);
+    it('should be enable to create a sale order', async () => {
+      for (let i = 0; i < data.sellers.length; i++) {
+        expect(this.saleOrders.length).to.equal(
+          this.initialNumberOfSaleOrders + i
+        );
 
-          await this.exchange.realizeOperationOfCreationOfTransaction();
+        const order = {
+          index: this.saleOrders.length + 1,
+          isSale: data.sellers[i].isSale,
+          userAddress: this.accounts[i + 1].address,
+          asset: data.asset,
+          value: data.sellers[i].value,
+          numberOfShares: data.sellers[i].numberOfShares,
+          acceptsFragmenting: data.sellers[i].acceptsFragmenting,
+        };
 
-          this.transactions = await this.exchange.returnTransactions();
-          this.saleOrders = await this.exchange.returnSaleOrders(data.asset);
-          this.purchasedOrders = await this.exchange.returnPurchasedOrders(
-            data.asset
+        await this.exchange.realizeOperationOfCreationOfOrder(
+          order.isSale,
+          order.userAddress,
+          order.asset,
+          order.value,
+          order.numberOfShares,
+          order.acceptsFragmenting
+        );
+
+        this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
+
+        const newOrder = {
+          index: this.saleOrders[i].index,
+          isSale: this.saleOrders[i].isSale,
+          userAddress: this.saleOrders[i].userAddress,
+          asset: this.saleOrders[i].asset,
+          value: this.saleOrders[i].value,
+          numberOfShares: this.saleOrders[i].numberOfShares,
+          acceptsFragmenting: this.saleOrders[i].acceptsFragmenting,
+        };
+
+        this.saleOrders = await this.exchange.returnSaleOrders(order.asset);
+
+        expect(this.saleOrders.length).to.equal(order.index);
+
+        expect(order.isSale).to.equal(newOrder.isSale);
+        expect(order.value).to.equal(newOrder.value);
+        expect(order.asset).to.equal(newOrder.asset);
+        expect(order.numberOfShares).to.equal(newOrder.numberOfShares);
+        expect(order.acceptsFragmenting).to.equal(newOrder.acceptsFragmenting);
+
+        expect(order.userAddress).to.equal(newOrder.userAddress);
+      }
+    });
+
+    it(
+      data.shouldCreateTransaction
+        ? 'should create transaction'
+        : 'should not create transaction',
+      async () => {
+        expect(this.purchasedOrders.length).to.equal(
+          this.initialNumberOfPurchasedOrders + data.buyers.length
+        );
+        expect(this.saleOrders.length).to.equal(
+          this.initialNumberOfSaleOrders + data.sellers.length
+        );
+        expect(this.transactions.length).to.equal(0);
+
+        await this.exchange.realizeOperationOfCreationOfTransaction();
+
+        this.transactions = await this.exchange.returnTransactions();
+        this.saleOrders = await this.exchange.returnSaleOrders(data.asset);
+        this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+          data.asset
+        );
+
+        expect(this.transactions.length > 0).to.equal(
+          data.shouldCreateTransaction
+        );
+
+        this.numberOfPurchasedOrders =
+          await this.exchange.returnNumberOfPurchasedOrdersByAssets(data.asset);
+        this.numberOfSaleOrders =
+          await this.exchange.returnNumberOfSaleOrdersByAssets(data.asset);
+
+        expect(this.transactions.length).to.equal(
+          data.finalOrders.transactions.length
+        );
+
+        for (let i = 0; i < data.finalOrders.transactions.length; i++) {
+          expect(this.transactions[i].value).to.equal(
+            data.finalOrders.transactions[i].value
           );
-
-          expect(this.transactions.length > 0).to.equal(
-            data.shouldCreateTransaction
+          expect(this.transactions[i].numberOfShares).to.equal(
+            data.finalOrders.transactions[i].numberOfShares
           );
+        }
 
-          this.numberOfPurchasedOrders =
-            await this.exchange.returnNumberOfPurchasedOrdersByAssets(
-              data.asset
-            );
-          this.numberOfSaleOrders =
-            await this.exchange.returnNumberOfSaleOrdersByAssets(data.asset);
-
-          expect(this.transactions.length).to.equal(
-            data.finalOrders.transactions.length
-          );
-          for (let i = 0; i < data.finalOrders.transactions.length; i++) {
-            expect(this.transactions[i].value).to.equal(
-              data.finalOrders.transactions[i].value
-            );
-            expect(this.transactions[i].numberOfShares).to.equal(
-              data.finalOrders.transactions[i].numberOfShares
-            );
-          }
-
-          expect(this.purchasedOrders.length).to.equal(
+        expect(this.purchasedOrders.length).to.equal(
+          this.initialNumberOfPurchasedOrders +
             data.finalOrders.purchasedOrders.length
-          );
-          for (let i = 0; i < data.finalOrders.purchasedOrders.length; i++) {
-            expect(this.purchasedOrders[i].value).to.equal(
-              data.finalOrders.purchasedOrders[i].value
-            );
-            expect(this.purchasedOrders[i].numberOfShares).to.equal(
-              data.finalOrders.purchasedOrders[i].numberOfShares
-            );
-            expect(this.purchasedOrders[i].isSale).to.equal(
-              data.finalOrders.purchasedOrders[i].isSale
-            );
-            expect(this.purchasedOrders[i].acceptsFragmenting).to.equal(
-              data.finalOrders.purchasedOrders[i].acceptsFragmenting
-            );
-            expect(this.purchasedOrders[i].isPassive).to.equal(
-              data.finalOrders.purchasedOrders[i].isPassive
-            );
-          }
-          expect(this.numberOfPurchasedOrders).to.equal(
-            data.finalOrders.purchasedOrders.length
-          );
+        );
 
-          expect(this.saleOrders.length).to.equal(
-            data.finalOrders.saleOrders.length
-          );
-          for (let i = 0; i < data.finalOrders.saleOrders.length; i++) {
-            expect(this.saleOrders[i].value).to.equal(
-              data.finalOrders.saleOrders[i].value
-            );
-            expect(this.saleOrders[i].numberOfShares).to.equal(
-              data.finalOrders.saleOrders[i].numberOfShares
-            );
-            expect(this.saleOrders[i].isSale).to.equal(
-              data.finalOrders.saleOrders[i].isSale
-            );
-            expect(this.saleOrders[i].acceptsFragmenting).to.equal(
-              data.finalOrders.saleOrders[i].acceptsFragmenting
-            );
-            expect(this.saleOrders[i].isPassive).to.equal(
-              data.finalOrders.saleOrders[i].isPassive
-            );
-          }
-          expect(this.numberOfSaleOrders).to.equal(
-            data.finalOrders.saleOrders.length
-          );
-        }
-      );
-    });
+        expect(this.saleOrders.length).to.equal(
+          this.initialNumberOfSaleOrders + data.finalOrders.saleOrders.length
+        );
+      }
+    );
   });
 }
