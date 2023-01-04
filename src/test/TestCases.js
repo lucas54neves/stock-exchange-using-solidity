@@ -67,6 +67,7 @@ for (const data of testsData) {
           value: data.buyers[i].value,
           numberOfShares: data.buyers[i].numberOfShares,
           acceptsFragmenting: data.buyers[i].acceptsFragmenting,
+          isPassive: false,
         };
 
         await this.exchange.realizeOperationOfCreationOfOrder(
@@ -75,7 +76,8 @@ for (const data of testsData) {
           order.asset,
           order.value,
           order.numberOfShares,
-          order.acceptsFragmenting
+          order.acceptsFragmenting,
+          order.isPassive
         );
 
         this.purchasedOrders = await this.exchange.returnPurchasedOrders(
@@ -91,6 +93,7 @@ for (const data of testsData) {
           numberOfShares: this.purchasedOrders[order.index - 1].numberOfShares,
           acceptsFragmenting:
             this.purchasedOrders[order.index - 1].acceptsFragmenting,
+          isPassive: this.purchasedOrders[order.index - 1].isPassive,
         };
 
         this.purchasedOrders = await this.exchange.returnPurchasedOrders(
@@ -105,6 +108,7 @@ for (const data of testsData) {
         expect(order.asset).to.equal(newOrder.asset);
         expect(order.numberOfShares).to.equal(newOrder.numberOfShares);
         expect(order.acceptsFragmenting).to.equal(newOrder.acceptsFragmenting);
+        expect(order.isPassive).to.equal(newOrder.isPassive);
       }
     });
 
@@ -122,6 +126,7 @@ for (const data of testsData) {
           value: data.sellers[i].value,
           numberOfShares: data.sellers[i].numberOfShares,
           acceptsFragmenting: data.sellers[i].acceptsFragmenting,
+          isPassive: data.sellers[i].isPassive,
         };
 
         await this.exchange.realizeOperationOfCreationOfOrder(
@@ -130,7 +135,8 @@ for (const data of testsData) {
           order.asset,
           order.value,
           order.numberOfShares,
-          order.acceptsFragmenting
+          order.acceptsFragmenting,
+          order.isPassive
         );
 
         this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
@@ -143,6 +149,7 @@ for (const data of testsData) {
           value: this.saleOrders[i].value,
           numberOfShares: this.saleOrders[i].numberOfShares,
           acceptsFragmenting: this.saleOrders[i].acceptsFragmenting,
+          isPassive: this.saleOrders[i].isPassive,
         };
 
         this.saleOrders = await this.exchange.returnSaleOrders(order.asset);
@@ -154,8 +161,8 @@ for (const data of testsData) {
         expect(order.asset).to.equal(newOrder.asset);
         expect(order.numberOfShares).to.equal(newOrder.numberOfShares);
         expect(order.acceptsFragmenting).to.equal(newOrder.acceptsFragmenting);
-
         expect(order.userAddress).to.equal(newOrder.userAddress);
+        expect(order.isPassive).to.equal(newOrder.isPassive);
       }
     });
 

@@ -9,7 +9,7 @@ const getExchange = async (asset) => {
 
   const accounts = await ethers.getSigners();
 
-  const numberOfNewOrders = chance.integer({ min: 10, max: 20 });
+  const numberOfNewOrders = chance.integer({ min: 10, max: 15 });
 
   for (let i = 1; i <= numberOfNewOrders; i++) {
     const order = {
@@ -20,6 +20,7 @@ const getExchange = async (asset) => {
       value: chance.integer({ min: 1000, max: 1_000_000 }),
       numberOfShares: chance.integer({ min: 1, max: 1000 }),
       acceptsFragmenting: chance.bool(),
+      isPassive: false,
     };
 
     await exchange.realizeOperationOfCreationOfOrder(
@@ -28,7 +29,8 @@ const getExchange = async (asset) => {
       order.asset,
       order.value,
       order.numberOfShares,
-      order.acceptsFragmenting
+      order.acceptsFragmenting,
+      order.isPassive
     );
   }
 
