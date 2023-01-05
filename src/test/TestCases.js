@@ -191,31 +191,33 @@ for (const data of testsData) {
           this.asset
         );
 
-        let ordersDebug = await this.exchange.returnOrders();
+        // let ordersDebug = await this.exchange.returnOrders();
 
-        console.log(
-          ordersDebug.map((order) => ({
-            index: Number(order.index),
-            value: Number(order.value),
-            isActive: order.isActive,
-            isSale: order.isSale,
-            numberOfShares: Number(order.numberOfShares),
-          }))
-        );
+        // console.log(
+        //   ordersDebug.map((order) => ({
+        //     index: Number(order.index),
+        //     value: Number(order.value),
+        //     isActive: order.isActive,
+        //     isSale: order.isSale,
+        //     numberOfShares: Number(order.numberOfShares),
+        //   }))
+        // );
 
-        ordersDebug = await this.exchange.returnPurchasedOrders(this.asset);
+        // ordersDebug = await this.exchange.returnPurchasedOrders(this.asset);
 
-        console.log(
-          ordersDebug.map((order) => ({
-            index: Number(order.index),
-            value: Number(order.value),
-            isActive: order.isActive,
-            isSale: order.isSale,
-            numberOfShares: Number(order.numberOfShares),
-          }))
-        );
+        // console.log(
+        //   ordersDebug.map((order) => ({
+        //     index: Number(order.index),
+        //     value: Number(order.value),
+        //     isActive: order.isActive,
+        //     isSale: order.isSale,
+        //     numberOfShares: Number(order.numberOfShares),
+        //   }))
+        // );
+
         // this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
-        console.log(this.asset);
+
+        // console.log(this.asset);
 
         expect(this.transactions.length > 0).to.equal(
           data.shouldCreateTransaction,
