@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.3;
+// pragma solidity ^0.7.3;
+pragma experimental ABIEncoderV2;
 
 contract Exchange {
     struct Order {
@@ -309,7 +310,7 @@ contract Exchange {
         }
 
         if (!isPassive) {
-            realizeOperationOfCreationOfTransaction();
+            realizeOperationOfCreationOfTransaction(asset, order);
         }
 
         return order;
@@ -331,7 +332,7 @@ contract Exchange {
                 i += 1;
             }
 
-            orderIndex = saleOrdersMappingByAssets[asset][orderIndex];
+            orderIndex = saleOrdersMappingByAssets[string(asset)][orderIndex];
         }
 
         return _orders;
@@ -361,108 +362,101 @@ contract Exchange {
         return _orders;
     }
 
-    function realizeOperationOfCreationOfTransaction(string memory asset) public {
-        Order[] memory saleOrders = returnSaleOrders(asset);
-        Order[] memory purchasedOrders = returnPurchasedOrders(asset);
+    function realizeOperationOfCreationOfTransaction(
+        string memory asset,
+        Order memory order
+    ) public returns (bool) {
+        Order[] memory ordersSalesOrPurchase;
 
-        uint256 numberOfSaleOrders = saleOrders.length;
-        uint256 numberOfPurchasedOrders = purchasedOrders.length;
+        if (order.isSale) {
+            ordersSalesOrPurchase = returnPurchasedOrders(asset);
+        } else {
+            ordersSalesOrPurchase = returnSaleOrders(asset);
+        }
 
-        uint256 j = 0;
+        for (uint256 i = 0; i < ordersSalesOrPurchase.length; i++) {
+            Order memory _order = ordersSalesOrPurchase[i];
+            Order memory saleOrder;
+            Order memory purchasedOrder;
 
-        while (j < numberOfSaleOrders) {
-            uint256 h = 0;
-
-            while (h < numberOfPurchasedOrders) {
-                Order memory saleOrder = saleOrders[j];
-                Order memory purchasedOrder = purchasedOrders[h];
-
-                if (
-                    saleOrder.value == purchasedOrder.value &&
-                    !checkTransactionConflict(
-                        saleOrder.acceptsFragmenting,
-                        purchasedOrder.acceptsFragmenting,
-                        saleOrder.numberOfShares >
-                            purchasedOrder.numberOfShares,
-                        saleOrder.numberOfShares !=
-                            purchasedOrder.numberOfShares
-                    ) &&
-                    returnOrderByOrderIndex(saleOrder.index).isActive &&
-                    returnOrderByOrderIndex(purchasedOrder.index).isActive
-                ) {
-                    uint256 minimunOfShares = saleOrder.numberOfShares >
-                        purchasedOrder.numberOfShares
-                        ? purchasedOrder.numberOfShares
-                        : saleOrder.numberOfShares;
-
-                    Transaction memory transaction = createTransaction(
-                        saleOrder.userAddress,
-                        purchasedOrder.userAddress,
-                        asset,
-                        saleOrder.value,
-                        minimunOfShares,
-                        saleOrder.index,
-                        purchasedOrder.index
-                    );
-
-                    addTransaction(transaction);
-
-                    if (
-                        saleOrder.numberOfShares >
-                        purchasedOrder.numberOfShares
-                    ) {
-                        Order
-                            memory order = realizeOperationOfCreationOfOrder(
-                                saleOrder.isSale,
-                                saleOrder.userAddress,
-                                saleOrder.asset,
-                                saleOrder.value,
-                                saleOrder.numberOfShares - minimunOfShares,
-                                saleOrder.acceptsFragmenting,
-                                saleOrder.isPassive
-                            );
-
-                        saleOrders[j] = order;
-                        // numberOfSaleOrders++;
-                    } else if (
-                        purchasedOrder.numberOfShares >
-                        saleOrder.numberOfShares
-                    ) {
-                        Order
-                            memory order = realizeOperationOfCreationOfOrder(
-                                purchasedOrder.isSale,
-                                purchasedOrder.userAddress,
-                                purchasedOrder.asset,
-                                purchasedOrder.value,
-                                purchasedOrder.numberOfShares -
-                                    minimunOfShares,
-                                purchasedOrder.acceptsFragmenting,
-                                purchasedOrder.isPassive
-                            );
-
-                        purchasedOrders[h] = order;
-                        // numberOfPurchasedOrders++;
-                    }
-
-                    orders[returnPositionOfOrderInArray(saleOrder.index)]
-                        .isActive = false;
-                    orders[
-                        returnPositionOfOrderInArray(purchasedOrder.index)
-                    ].isActive = false;
-
-                    numberOfSaleOrdersByAssets[saleOrder.asset] -= 1;
-                    numberOfPurchasedOrdersByAssets[
-                        purchasedOrder.asset
-                    ] -= 1;
-
-                    h = numberOfPurchasedOrders;
-                }
-
-                h++;
+            if (order.isSale) {
+                saleOrder = order;
+                purchasedOrder = _order;
+            } else {
+                saleOrder = _order;
+                purchasedOrder = order;
             }
 
-            j++;
+            if (
+                saleOrder.value == purchasedOrder.value &&
+                !checkTransactionConflict(
+                    saleOrder.acceptsFragmenting,
+                    purchasedOrder.acceptsFragmenting,
+                    saleOrder.numberOfShares > purchasedOrder.numberOfShares,
+                    saleOrder.numberOfShares != purchasedOrder.numberOfShares
+                ) &&
+                returnOrderByOrderIndex(saleOrder.index).isActive &&
+                returnOrderByOrderIndex(purchasedOrder.index).isActive
+            ) {
+                uint256 minimunOfShares = saleOrder.numberOfShares >
+                    purchasedOrder.numberOfShares
+                    ? purchasedOrder.numberOfShares
+                    : saleOrder.numberOfShares;
+
+                Transaction memory transaction = createTransaction(
+                    saleOrder.userAddress,
+                    purchasedOrder.userAddress,
+                    asset,
+                    saleOrder.value,
+                    minimunOfShares,
+                    saleOrder.index,
+                    purchasedOrder.index
+                );
+
+                addTransaction(transaction);
+
+                if (saleOrder.numberOfShares > purchasedOrder.numberOfShares) {
+                    realizeOperationOfCreationOfOrder(
+                        saleOrder.isSale,
+                        saleOrder.userAddress,
+                        saleOrder.asset,
+                        saleOrder.value,
+                        saleOrder.numberOfShares - minimunOfShares,
+                        saleOrder.acceptsFragmenting,
+                        saleOrder.isPassive
+                    );
+                } else if (
+                    saleOrder.numberOfShares < purchasedOrder.numberOfShares
+                ) {
+                    realizeOperationOfCreationOfOrder(
+                        purchasedOrder.isSale,
+                        purchasedOrder.userAddress,
+                        purchasedOrder.asset,
+                        purchasedOrder.value,
+                        purchasedOrder.numberOfShares - minimunOfShares,
+                        purchasedOrder.acceptsFragmenting,
+                        purchasedOrder.isPassive
+                    );
+                }
+
+                uint256 orderPosition = returnPositionOfOrderInArray(
+                    order.index
+                );
+                uint256 _orderPosition = returnPositionOfOrderInArray(
+                    _order.index
+                );
+
+                orders[orderPosition].isActive = false;
+                orders[_orderPosition].isActive = false;
+
+                numberOfSaleOrdersByAssets[asset] -= 1;
+                numberOfPurchasedOrdersByAssets[asset] -= 1;
+
+                return true;
+            }
         }
+
+        return false;
     }
 
     function returnNumberOfPurchasedOrdersByAssets(string memory asset)

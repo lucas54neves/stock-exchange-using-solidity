@@ -1,22 +1,23 @@
 {
-    "name": "src",
-    "version": "1.0.0",
-    "main": "index.js",
-    "license": "MIT",
-    "dependencies": {
-        "truffle": "^5.4.29"
-    },
-    "scripts": {
-        "test": "hardhat test",
-        "test:cases": "hardhat test src/test/TestCases.js"
-    },
-    "devDependencies": {
-        "@nomiclabs/hardhat-ethers": "^2.0.0",
-        "@nomiclabs/hardhat-waffle": "^2.0.0",
-        "chai": "^4.2.0",
-        "chance": "^1.1.9",
-        "ethereum-waffle": "^3.0.0",
-        "ethers": "^5.0.0",
-        "hardhat": "^2.9.9"
-    }
+  "name": "src",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "truffle": "^5.4.29"
+  },
+  "scripts": {
+    "test": "hardhat test",
+    "test:cases": "hardhat test src/test/TestCases.js",
+    "test:exchange": "hardhat test src/test/TestExchange.js"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.0",
+    "@nomiclabs/hardhat-waffle": "^2.0.0",
+    "chai": "^4.2.0",
+    "chance": "^1.1.9",
+    "ethereum-waffle": "^3.0.0",
+    "ethers": "^5.0.0",
+    "hardhat": "^2.9.9"
+  }
 }

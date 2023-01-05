@@ -404,7 +404,10 @@ describe('Exchange', () => {
 
     expect(purchasedOrders.length).to.equal(1);
 
-    await this.exchange.realizeOperationOfCreationOfTransaction();
+    await this.exchange.realizeOperationOfCreationOfTransaction(
+      orderData.asset,
+      saleOrders[0]
+    );
 
     const transactions = await this.exchange.returnTransactions();
 
