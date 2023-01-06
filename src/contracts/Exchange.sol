@@ -28,6 +28,8 @@ contract Exchange {
         uint256 purchaseOrderIndex;
     }
 
+    address public owner;
+
     Order[] private orders;
     Transaction[] private transactions;
     string[] private assets;
@@ -39,6 +41,15 @@ contract Exchange {
 
     mapping(string => uint256) private numberOfSaleOrdersByAssets;
     mapping(string => uint256) private numberOfPurchasedOrdersByAssets;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function sendMoney(address _to, uint256 value) public payable {
+        (bool sent, ) = _to.call{value: value}("");
+        require(sent, "Failed to send Ether");
+    }
 
     function returnOrderByOrderIndex(uint256 orderIndex)
         private
@@ -209,6 +220,13 @@ contract Exchange {
             acceptsFragmenting,
             isPassive
         );
+
+        // Solidity truncates all results
+        if (isPassive) {
+            sendMoney(owner, (value * 1) / 100);
+        } else {
+            sendMoney(owner, (value * 2) / 100);
+        }
 
         addOrder(order);
 
@@ -412,6 +430,12 @@ contract Exchange {
                     saleOrder.index,
                     purchasedOrder.index
                 );
+
+                if (order.isSale) {
+                    sendMoney(purchasedOrder.userAddress, saleOrder.value);
+                } else {
+                    sendMoney(saleOrder.userAddress, saleOrder.value);
+                }
 
                 addTransaction(transaction);
 
