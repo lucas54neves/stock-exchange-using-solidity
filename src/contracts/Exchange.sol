@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.3;
+// pragma solidity ^0.7.3;
+pragma experimental ABIEncoderV2;
 
 contract Exchange {
     struct Order {
@@ -12,6 +13,7 @@ contract Exchange {
         uint256 numberOfShares;
         bool acceptsFragmenting;
         bool isActive;
+        bool isPassive;
     }
 
     struct Transaction {
@@ -23,8 +25,10 @@ contract Exchange {
         uint256 value;
         uint256 numberOfShares;
         uint256 saleOrderIndex;
-        uint256 purchaseOrderIndex;
+        uint256 purchasedOrderIndex;
     }
+
+    address payable private owner;
 
     Order[] private orders;
     Transaction[] private transactions;
@@ -37,6 +41,63 @@ contract Exchange {
 
     mapping(string => uint256) private numberOfSaleOrdersByAssets;
     mapping(string => uint256) private numberOfPurchasedOrdersByAssets;
+
+    mapping(address => uint256) private balances;
+    address[] private addressFromBalances;
+    uint256 private numberOfAddress;
+
+    constructor() {
+        owner = payable(msg.sender);
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "this is not the owner");
+        _; // it means run the code.
+    }
+
+    event Deposited(address from, uint256 amount);
+
+    function depositMoney() public payable returns (uint256) {
+        balances[msg.sender] += msg.value;
+
+        if (!existsAddress(msg.sender)) {
+            numberOfAddress += 1;
+            addressFromBalances.push(msg.sender);
+        }
+
+        emit Deposited(msg.sender, msg.value);
+
+        return balances[msg.sender];
+    }
+
+    function withdraw(uint256 amount) public onlyOwner {
+        require(balances[msg.sender] >= amount, "Balance not sufficient");
+
+        balances[msg.sender] -= amount;
+
+        payable(msg.sender).transfer(amount);
+    }
+
+    function getSmartContractBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function getBalance() public view returns (uint256) {
+        return balances[msg.sender];
+    }
+
+    function sendMoney(
+        address receiver,
+        address sender,
+        uint256 amount
+    ) private returns (bool) {
+        require(balances[sender] >= amount, "Balance not sufficient");
+
+        balances[sender] -= amount;
+        balances[receiver] += amount;
+
+        payable(receiver).transfer(amount);
+    }
 
     function returnOrderByOrderIndex(uint256 orderIndex)
         private
@@ -54,13 +115,13 @@ contract Exchange {
         return orderIndex - 1;
     }
 
-    function compareAssets(string memory asset1, string memory asset2)
+    function compareStrings(string memory _string1, string memory _string2)
         public
         pure
         returns (bool)
     {
-        return (keccak256(abi.encodePacked((asset1))) ==
-            keccak256(abi.encodePacked((asset2))));
+        return (keccak256(abi.encodePacked((_string1))) ==
+            keccak256(abi.encodePacked((_string2))));
     }
 
     function createOrder(
@@ -69,7 +130,8 @@ contract Exchange {
         string memory asset,
         uint256 value,
         uint256 numberOfShares,
-        bool acceptsFragmenting
+        bool acceptsFragmenting,
+        bool isPassive
     ) public view returns (Order memory) {
         return
             Order({
@@ -81,7 +143,8 @@ contract Exchange {
                 numberOfShares: numberOfShares,
                 createdAt: block.timestamp, // require view-type function
                 acceptsFragmenting: acceptsFragmenting,
-                isActive: true
+                isActive: true,
+                isPassive: isPassive
             });
     }
 
@@ -92,7 +155,7 @@ contract Exchange {
         uint256 value,
         uint256 numberOfShares,
         uint256 saleOrderIndex,
-        uint256 purchaseOrderIndex
+        uint256 purchasedOrderIndex
     ) public view returns (Transaction memory) {
         return
             Transaction({
@@ -104,7 +167,7 @@ contract Exchange {
                 createdAt: block.timestamp, // require view-type function,
                 numberOfShares: numberOfShares,
                 saleOrderIndex: saleOrderIndex,
-                purchaseOrderIndex: purchaseOrderIndex
+                purchasedOrderIndex: purchasedOrderIndex
             });
     }
 
@@ -136,7 +199,37 @@ contract Exchange {
 
     function existsAsset(string memory asset) public view returns (bool) {
         for (uint256 i = 0; i < assets.length; i++) {
-            if (compareAssets(assets[i], asset)) {
+            if (compareStrings(assets[i], asset)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function toString(address account) public pure returns (string memory) {
+        return toString(abi.encodePacked(account));
+    }
+
+    function toString(bytes memory data) public pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+
+        bytes memory str = new bytes(2 + data.length * 2);
+        str[0] = "0";
+        str[1] = "x";
+        for (uint256 i = 0; i < data.length; i++) {
+            str[2 + i * 2] = alphabet[uint256(uint8(data[i] >> 4))];
+            str[3 + i * 2] = alphabet[uint256(uint8(data[i] & 0x0f))];
+        }
+        return string(str);
+    }
+
+    function existsAddress(address _address) public view returns (bool) {
+        for (uint256 i = 0; i < addressFromBalances.length; i++) {
+            string memory address1 = toString(addressFromBalances[i]);
+            string memory address2 = toString(_address);
+
+            if (compareStrings(address1, address2)) {
                 return true;
             }
         }
@@ -187,7 +280,8 @@ contract Exchange {
         string memory asset,
         uint256 value,
         uint256 numberOfShares,
-        bool acceptsFragmenting
+        bool acceptsFragmenting,
+        bool isPassive
     ) public returns (Order memory) {
         if (!existsAsset(asset)) {
             addAsset(asset);
@@ -201,8 +295,16 @@ contract Exchange {
             asset,
             value,
             numberOfShares,
-            acceptsFragmenting
+            acceptsFragmenting,
+            isPassive
         );
+
+        // Solidity truncates all results
+        if (isPassive) {
+            sendMoney(owner, userAddress, (value * 1) / 100);
+        } else {
+            sendMoney(owner, userAddress, (value * 2) / 100);
+        }
 
         addOrder(order);
 
@@ -303,7 +405,19 @@ contract Exchange {
             numberOfPurchasedOrdersByAssets[asset] += 1;
         }
 
+        if (!isPassive) {
+            realizeOperationOfCreationOfTransaction(asset, order);
+        }
+
         return order;
+    }
+
+    function returnAddressesFromBalances()
+        public
+        view
+        returns (address[] memory)
+    {
+        return addressFromBalances;
     }
 
     function returnSaleOrders(string memory asset)
@@ -352,110 +466,219 @@ contract Exchange {
         return _orders;
     }
 
-    function realizeOperationOfCreationOfTransaction() public {
-        for (uint256 i = 0; i < assets.length; i++) {
-            string memory asset = assets[i];
+    function checkIfOrdersIsCompatible(
+        Order memory saleOrder,
+        Order memory purchasedOrder
+    ) private view returns (bool) {
+        return
+            saleOrder.isSale &&
+            (!purchasedOrder.isSale) &&
+            saleOrder.value == purchasedOrder.value &&
+            !checkTransactionConflict(
+                saleOrder.acceptsFragmenting,
+                purchasedOrder.acceptsFragmenting,
+                saleOrder.numberOfShares > purchasedOrder.numberOfShares,
+                saleOrder.numberOfShares != purchasedOrder.numberOfShares
+            ) &&
+            returnOrderByOrderIndex(saleOrder.index).isActive &&
+            returnOrderByOrderIndex(purchasedOrder.index).isActive;
+    }
 
-            Order[] memory saleOrders = returnSaleOrders(asset);
-            Order[] memory purchasedOrders = returnPurchasedOrders(asset);
+    function realizeOperationOfCreationOfTransactionInAllAsset(
+        string memory asset
+    ) public returns (bool) {
+        Order[] memory saleOrders = returnSaleOrders(asset);
+        Order[] memory purchasedOrders = returnPurchasedOrders(asset);
 
-            uint256 numberOfSaleOrders = saleOrders.length;
-            uint256 numberOfPurchasedOrders = purchasedOrders.length;
+        for (
+            uint256 saleOrderIndex = 0;
+            saleOrders.length > saleOrderIndex;
+            ++saleOrderIndex
+        ) {
+            for (
+                uint256 purchasedOrderIndex = 0;
+                purchasedOrders.length > purchasedOrderIndex;
+                ++purchasedOrderIndex
+            ) {
+                Order memory saleOrder = saleOrders[saleOrderIndex];
+                Order memory purchasedOrder = purchasedOrders[
+                    purchasedOrderIndex
+                ];
 
-            uint256 j = 0;
+                if (checkIfOrdersIsCompatible(saleOrder, purchasedOrder)) {
+                    bool saleOrderIsBigger = saleOrder.numberOfShares >
+                        purchasedOrder.numberOfShares;
+                    bool purchasedOrderIsBigger = purchasedOrder
+                        .numberOfShares > saleOrder.numberOfShares;
 
-            while (j < numberOfSaleOrders) {
-                uint256 h = 0;
+                    uint256 minimunOfShares = saleOrderIsBigger
+                        ? purchasedOrder.numberOfShares
+                        : saleOrder.numberOfShares;
 
-                while (h < numberOfPurchasedOrders) {
-                    Order memory saleOrder = saleOrders[j];
-                    Order memory purchasedOrder = purchasedOrders[h];
+                    sendMoney(
+                        purchasedOrder.userAddress,
+                        saleOrder.userAddress,
+                        saleOrder.value
+                    );
 
-                    if (
-                        saleOrder.value == purchasedOrder.value &&
-                        !checkTransactionConflict(
-                            saleOrder.acceptsFragmenting,
-                            purchasedOrder.acceptsFragmenting,
-                            saleOrder.numberOfShares >
-                                purchasedOrder.numberOfShares,
-                            saleOrder.numberOfShares !=
-                                purchasedOrder.numberOfShares
-                        ) &&
-                        returnOrderByOrderIndex(saleOrder.index).isActive &&
-                        returnOrderByOrderIndex(purchasedOrder.index).isActive
-                    ) {
-                        uint256 minimunOfShares = saleOrder.numberOfShares >
-                            purchasedOrder.numberOfShares
-                            ? purchasedOrder.numberOfShares
-                            : saleOrder.numberOfShares;
+                    Transaction memory transaction = createTransaction(
+                        saleOrder.userAddress,
+                        purchasedOrder.userAddress,
+                        asset,
+                        saleOrder.value,
+                        minimunOfShares,
+                        saleOrderIndex,
+                        purchasedOrderIndex
+                    );
 
-                        Transaction memory transaction = createTransaction(
+                    addTransaction(transaction);
+
+                    if (saleOrderIsBigger) {
+                        realizeOperationOfCreationOfOrder(
+                            saleOrder.isSale,
                             saleOrder.userAddress,
-                            purchasedOrder.userAddress,
-                            asset,
+                            saleOrder.asset,
                             saleOrder.value,
-                            minimunOfShares,
-                            saleOrder.index,
+                            saleOrder.numberOfShares - minimunOfShares,
+                            saleOrder.acceptsFragmenting,
+                            saleOrder.isPassive
+                        );
+                    }
+
+                    if (purchasedOrderIsBigger) {
+                        realizeOperationOfCreationOfOrder(
+                            purchasedOrder.isSale,
+                            purchasedOrder.userAddress,
+                            purchasedOrder.asset,
+                            purchasedOrder.value,
+                            purchasedOrder.numberOfShares - minimunOfShares,
+                            purchasedOrder.acceptsFragmenting,
+                            purchasedOrder.isPassive
+                        );
+                    }
+
+                    uint256 saleOrderPosition = returnPositionOfOrderInArray(
+                        saleOrder.index
+                    );
+                    uint256 purchasedOrderPosition = returnPositionOfOrderInArray(
                             purchasedOrder.index
                         );
 
-                        addTransaction(transaction);
+                    orders[saleOrderPosition].isActive = false;
+                    orders[purchasedOrderPosition].isActive = false;
 
-                        if (
-                            saleOrder.numberOfShares >
-                            purchasedOrder.numberOfShares
-                        ) {
-                            Order
-                                memory order = realizeOperationOfCreationOfOrder(
-                                    saleOrder.isSale,
-                                    saleOrder.userAddress,
-                                    saleOrder.asset,
-                                    saleOrder.value,
-                                    saleOrder.numberOfShares - minimunOfShares,
-                                    saleOrder.acceptsFragmenting
-                                );
-
-                            saleOrders[j] = order;
-                            // numberOfSaleOrders++;
-                        } else if (
-                            purchasedOrder.numberOfShares >
-                            saleOrder.numberOfShares
-                        ) {
-                            Order
-                                memory order = realizeOperationOfCreationOfOrder(
-                                    purchasedOrder.isSale,
-                                    purchasedOrder.userAddress,
-                                    purchasedOrder.asset,
-                                    purchasedOrder.value,
-                                    purchasedOrder.numberOfShares -
-                                        minimunOfShares,
-                                    purchasedOrder.acceptsFragmenting
-                                );
-
-                            purchasedOrders[h] = order;
-                            // numberOfPurchasedOrders++;
-                        }
-
-                        orders[returnPositionOfOrderInArray(saleOrder.index)]
-                            .isActive = false;
-                        orders[
-                            returnPositionOfOrderInArray(purchasedOrder.index)
-                        ].isActive = false;
-
-                        numberOfSaleOrdersByAssets[saleOrder.asset] -= 1;
-                        numberOfPurchasedOrdersByAssets[
-                            purchasedOrder.asset
-                        ] -= 1;
-
-                        h = numberOfPurchasedOrders;
-                    }
-
-                    h++;
+                    numberOfSaleOrdersByAssets[asset] -= 1;
+                    numberOfPurchasedOrdersByAssets[asset] -= 1;
                 }
-
-                j++;
             }
         }
+    }
+
+    function realizeOperationOfCreationOfTransaction(
+        string memory asset,
+        Order memory order
+    ) public returns (bool) {
+        Order[] memory ordersSalesOrPurchase;
+
+        if (order.isSale) {
+            ordersSalesOrPurchase = returnPurchasedOrders(asset);
+        } else {
+            ordersSalesOrPurchase = returnSaleOrders(asset);
+        }
+
+        for (uint256 i = 0; i < ordersSalesOrPurchase.length; i++) {
+            Order memory _order = ordersSalesOrPurchase[i];
+            Order memory saleOrder;
+            Order memory purchasedOrder;
+
+            if (order.isSale) {
+                saleOrder = orders[returnPositionOfOrderInArray(order.index)];
+                purchasedOrder = orders[
+                    returnPositionOfOrderInArray(_order.index)
+                ];
+            } else {
+                saleOrder = orders[returnPositionOfOrderInArray(_order.index)];
+                purchasedOrder = orders[
+                    returnPositionOfOrderInArray(order.index)
+                ];
+            }
+
+            if (
+                saleOrder.value == purchasedOrder.value &&
+                !checkTransactionConflict(
+                    saleOrder.acceptsFragmenting,
+                    purchasedOrder.acceptsFragmenting,
+                    saleOrder.numberOfShares > purchasedOrder.numberOfShares,
+                    saleOrder.numberOfShares != purchasedOrder.numberOfShares
+                ) &&
+                returnOrderByOrderIndex(saleOrder.index).isActive &&
+                returnOrderByOrderIndex(purchasedOrder.index).isActive
+            ) {
+                uint256 minimunOfShares = saleOrder.numberOfShares >
+                    purchasedOrder.numberOfShares
+                    ? purchasedOrder.numberOfShares
+                    : saleOrder.numberOfShares;
+
+                Transaction memory transaction = createTransaction(
+                    saleOrder.userAddress,
+                    purchasedOrder.userAddress,
+                    asset,
+                    saleOrder.value,
+                    minimunOfShares,
+                    saleOrder.index,
+                    purchasedOrder.index
+                );
+
+                sendMoney(
+                    purchasedOrder.userAddress,
+                    saleOrder.userAddress,
+                    saleOrder.value
+                );
+
+                addTransaction(transaction);
+
+                if (saleOrder.numberOfShares > purchasedOrder.numberOfShares) {
+                    realizeOperationOfCreationOfOrder(
+                        saleOrder.isSale,
+                        saleOrder.userAddress,
+                        saleOrder.asset,
+                        saleOrder.value,
+                        saleOrder.numberOfShares - minimunOfShares,
+                        saleOrder.acceptsFragmenting,
+                        saleOrder.isPassive
+                    );
+                } else if (
+                    saleOrder.numberOfShares < purchasedOrder.numberOfShares
+                ) {
+                    realizeOperationOfCreationOfOrder(
+                        purchasedOrder.isSale,
+                        purchasedOrder.userAddress,
+                        purchasedOrder.asset,
+                        purchasedOrder.value,
+                        purchasedOrder.numberOfShares - minimunOfShares,
+                        purchasedOrder.acceptsFragmenting,
+                        purchasedOrder.isPassive
+                    );
+                }
+
+                uint256 saleOrderPosition = returnPositionOfOrderInArray(
+                    saleOrder.index
+                );
+                uint256 purchasedOrderPosition = returnPositionOfOrderInArray(
+                    purchasedOrder.index
+                );
+
+                orders[saleOrderPosition].isActive = false;
+                orders[purchasedOrderPosition].isActive = false;
+
+                numberOfSaleOrdersByAssets[asset] -= 1;
+                numberOfPurchasedOrdersByAssets[asset] -= 1;
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     function returnNumberOfPurchasedOrdersByAssets(string memory asset)
