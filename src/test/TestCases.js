@@ -1,4 +1,8 @@
-const { getExchange, viewListOfOrdersByAssetCode } = require('./utils');
+const {
+  getExchange,
+  viewListOfOrdersByAssetCode,
+  convertToNumber,
+} = require('./utils');
 const { expect } = require('chai');
 const { testsData } = require('./data');
 
@@ -25,7 +29,7 @@ for (const data of testsData) {
       this.initialNumberOfSaleOrders = this.saleOrders.length;
     });
 
-    beforeEach(() => {
+    beforeEach(async () => {
       console.log();
       console.log('Before test');
       viewListOfOrdersByAssetCode(
@@ -36,7 +40,7 @@ for (const data of testsData) {
       console.log();
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       console.log();
       console.log('After test');
       viewListOfOrdersByAssetCode(
@@ -69,6 +73,18 @@ for (const data of testsData) {
           acceptsFragmenting: data.buyers[i].acceptsFragmenting,
           isPassive: false,
         };
+
+        const balanceBefore = await this.exchange.getSmartContractBalance();
+
+        await this.exchange.connect(this.accounts[i + 1]).depositMoney({
+          value: ethers.utils.formatUnits(String(data.buyers[i].value), 'wei'),
+        });
+
+        const balanceAfter = await this.exchange.getSmartContractBalance();
+
+        expect(convertToNumber(balanceAfter)).to.equal(
+          convertToNumber(balanceBefore) + data.sellers[i].value
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
           order.isSale,
@@ -126,6 +142,18 @@ for (const data of testsData) {
         };
 
         this.saleOrderIndex = this.saleOrders.length;
+
+        const balanceBefore = await this.exchange.getSmartContractBalance();
+
+        await this.exchange.connect(this.accounts[i + 1]).depositMoney({
+          value: ethers.utils.formatUnits(String(data.sellers[i].value), 'wei'),
+        });
+
+        const balanceAfter = await this.exchange.getSmartContractBalance();
+
+        expect(convertToNumber(balanceAfter)).to.equal(
+          convertToNumber(balanceBefore) + data.sellers[i].value
+        );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
           order.isSale,
@@ -191,47 +219,18 @@ for (const data of testsData) {
           this.asset
         );
 
-        // let ordersDebug = await this.exchange.returnOrders();
-
-        // console.log(
-        //   ordersDebug.map((order) => ({
-        //     index: Number(order.index),
-        //     value: Number(order.value),
-        //     isActive: order.isActive,
-        //     isSale: order.isSale,
-        //     numberOfShares: Number(order.numberOfShares),
-        //   }))
-        // );
-
-        // ordersDebug = await this.exchange.returnPurchasedOrders(this.asset);
-
-        // console.log(
-        //   ordersDebug.map((order) => ({
-        //     index: Number(order.index),
-        //     value: Number(order.value),
-        //     isActive: order.isActive,
-        //     isSale: order.isSale,
-        //     numberOfShares: Number(order.numberOfShares),
-        //   }))
-        // );
-
-        // this.saleOrders = await this.exchange.returnSaleOrders(this.asset);
-
-        // console.log(this.asset);
-
         expect(this.transactions.length > 0).to.equal(
           data.shouldCreateTransaction,
           'should create transaction'
+        );
+        expect(this.transactions.length).to.equal(
+          data.finalOrders.transactions.length
         );
 
         this.numberOfPurchasedOrders =
           await this.exchange.returnNumberOfPurchasedOrdersByAssets(this.asset);
         this.numberOfSaleOrders =
           await this.exchange.returnNumberOfSaleOrdersByAssets(this.asset);
-
-        expect(this.transactions.length).to.equal(
-          data.finalOrders.transactions.length
-        );
 
         for (let i = 0; i < data.finalOrders.transactions.length; i++) {
           expect(this.transactions[i].value).to.equal(

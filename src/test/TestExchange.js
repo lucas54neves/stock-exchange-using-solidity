@@ -1,5 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { convertToNumber } = require('./utils');
+const Chance = require('chance');
+const chance = new Chance();
 
 describe('Exchange', () => {
   beforeEach(async () => {
@@ -8,6 +11,23 @@ describe('Exchange', () => {
     this.exchange = await Exchange.deploy();
 
     this.accounts = await ethers.getSigners();
+  });
+
+  it('should send money', async () => {
+    const accountId = chance.integer({ min: 1, max: this.accounts.length - 1 });
+    const value = chance.integer({ min: 1000, max: 1_000_000 });
+
+    const balanceBefore = await this.exchange.getSmartContractBalance();
+
+    await this.exchange.connect(this.accounts[accountId]).depositMoney({
+      value: ethers.utils.formatUnits(String(value), 'wei'),
+    });
+
+    const balanceAfter = await this.exchange.getSmartContractBalance();
+
+    expect(convertToNumber(balanceAfter)).to.equal(
+      convertToNumber(balanceBefore) + value
+    );
   });
 
   it('should compare assets', async () => {

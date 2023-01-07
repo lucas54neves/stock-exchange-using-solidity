@@ -28,7 +28,7 @@ contract Exchange {
         uint256 purchaseOrderIndex;
     }
 
-    address public owner;
+    address payable private owner;
 
     Order[] private orders;
     Transaction[] private transactions;
@@ -42,13 +42,56 @@ contract Exchange {
     mapping(string => uint256) private numberOfSaleOrdersByAssets;
     mapping(string => uint256) private numberOfPurchasedOrdersByAssets;
 
+    mapping(address => uint256) private balances;
+
     constructor() {
-        owner = msg.sender;
+        owner = payable(msg.sender);
     }
 
-    function sendMoney(address _to, uint256 value) public payable {
-        (bool sent, ) = _to.call{value: value}("");
-        require(sent, "Failed to send Ether");
+    modifier onlyOwner() {
+        require(msg.sender == owner, "this is not the owner");
+        _; // it means run the code.
+    }
+
+    event Deposited(address from, uint256 amount);
+
+    function depositMoney() public payable returns (uint256) {
+        balances[msg.sender] += msg.value;
+
+        emit Deposited(msg.sender, msg.value);
+
+        return balances[msg.sender];
+    }
+
+    function withdraw(uint256 amount) private onlyOwner {
+        require(balances[msg.sender] >= amount, "Balance not sufficient");
+
+        balances[msg.sender] -= amount;
+
+        payable(msg.sender).transfer(amount);
+    }
+
+    function getSmartContractBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function getBalance() public view returns (uint256) {
+        return balances[msg.sender];
+    }
+
+    function sendMoney(
+        address receiver,
+        address sender,
+        uint256 amount
+    ) public payable returns (bool) {
+        require(balances[sender] >= amount, "Balance not sufficient");
+
+        balances[sender] -= amount;
+
+        if (receiver != owner) {
+            balances[receiver] += amount;
+            payable(receiver).transfer(amount);
+        }
     }
 
     function returnOrderByOrderIndex(uint256 orderIndex)
@@ -223,9 +266,9 @@ contract Exchange {
 
         // Solidity truncates all results
         if (isPassive) {
-            sendMoney(owner, (value * 1) / 100);
+            sendMoney(owner, userAddress, (value * 1) / 100);
         } else {
-            sendMoney(owner, (value * 2) / 100);
+            sendMoney(owner, userAddress, (value * 2) / 100);
         }
 
         addOrder(order);
@@ -350,7 +393,7 @@ contract Exchange {
                 i += 1;
             }
 
-            orderIndex = saleOrdersMappingByAssets[string(asset)][orderIndex];
+            orderIndex = saleOrdersMappingByAssets[asset][orderIndex];
         }
 
         return _orders;
@@ -398,11 +441,15 @@ contract Exchange {
             Order memory purchasedOrder;
 
             if (order.isSale) {
-                saleOrder = order;
-                purchasedOrder = _order;
+                saleOrder = orders[returnPositionOfOrderInArray(order.index)];
+                purchasedOrder = orders[
+                    returnPositionOfOrderInArray(_order.index)
+                ];
             } else {
-                saleOrder = _order;
-                purchasedOrder = order;
+                saleOrder = orders[returnPositionOfOrderInArray(_order.index)];
+                purchasedOrder = orders[
+                    returnPositionOfOrderInArray(order.index)
+                ];
             }
 
             if (
@@ -431,11 +478,11 @@ contract Exchange {
                     purchasedOrder.index
                 );
 
-                if (order.isSale) {
-                    sendMoney(purchasedOrder.userAddress, saleOrder.value);
-                } else {
-                    sendMoney(saleOrder.userAddress, saleOrder.value);
-                }
+                sendMoney(
+                    purchasedOrder.userAddress,
+                    saleOrder.userAddress,
+                    saleOrder.value
+                );
 
                 addTransaction(transaction);
 
@@ -463,15 +510,15 @@ contract Exchange {
                     );
                 }
 
-                uint256 orderPosition = returnPositionOfOrderInArray(
-                    order.index
+                uint256 saleOrderPosition = returnPositionOfOrderInArray(
+                    saleOrder.index
                 );
-                uint256 _orderPosition = returnPositionOfOrderInArray(
-                    _order.index
+                uint256 purchasedOrderPosition = returnPositionOfOrderInArray(
+                    purchasedOrder.index
                 );
 
-                orders[orderPosition].isActive = false;
-                orders[_orderPosition].isActive = false;
+                orders[saleOrderPosition].isActive = false;
+                orders[purchasedOrderPosition].isActive = false;
 
                 numberOfSaleOrdersByAssets[asset] -= 1;
                 numberOfPurchasedOrdersByAssets[asset] -= 1;

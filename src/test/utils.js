@@ -12,16 +12,21 @@ const getExchange = async (asset) => {
   const numberOfNewOrders = chance.integer({ min: 10, max: 15 });
 
   for (let i = 1; i <= numberOfNewOrders; i++) {
+    const accountId = chance.integer({ min: 1, max: accounts.length - 1 });
+
     const order = {
       isSale: i % 2 === 0,
-      userAddress:
-        accounts[chance.integer({ min: 0, max: accounts.length - 1 })].address,
+      userAddress: accounts[accountId].address,
       asset,
       value: chance.integer({ min: 1000, max: 1_000_000 }),
       numberOfShares: chance.integer({ min: 1, max: 1000 }),
       acceptsFragmenting: chance.bool(),
       isPassive: false,
     };
+
+    await exchange.connect(accounts[accountId]).depositMoney({
+      value: ethers.utils.formatUnits(String(order.value), 'wei'),
+    });
 
     await exchange.realizeOperationOfCreationOfOrder(
       order.isSale,
@@ -63,4 +68,8 @@ function viewListOfOrdersByAssetCode(asset, purchasedOrders, saleOrders) {
   }
 }
 
-module.exports = { getExchange, viewListOfOrdersByAssetCode };
+function convertToNumber(value) {
+  return +value;
+}
+
+module.exports = { getExchange, viewListOfOrdersByAssetCode, convertToNumber };
