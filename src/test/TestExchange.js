@@ -408,6 +408,18 @@ describe('Exchange', () => {
 
     expect(saleOrders.length).to.equal(1);
 
+    const balanceBefore = await this.exchange.getSmartContractBalance();
+
+    await this.exchange.connect(this.accounts[1]).depositMoney({
+      value: ethers.utils.formatUnits(String(56), 'wei'),
+    });
+
+    const balanceAfter = await this.exchange.getSmartContractBalance();
+
+    expect(convertToNumber(balanceAfter)).to.equal(
+      convertToNumber(balanceBefore) + 56
+    );
+
     await this.exchange.realizeOperationOfCreationOfOrder(
       false,
       orderData.userAddress,

@@ -25,7 +25,7 @@ contract Exchange {
         uint256 value;
         uint256 numberOfShares;
         uint256 saleOrderIndex;
-        uint256 purchaseOrderIndex;
+        uint256 purchasedOrderIndex;
     }
 
     address payable private owner;
@@ -43,6 +43,8 @@ contract Exchange {
     mapping(string => uint256) private numberOfPurchasedOrdersByAssets;
 
     mapping(address => uint256) private balances;
+    address[] private addressFromBalances;
+    uint256 private numberOfAddress;
 
     constructor() {
         owner = payable(msg.sender);
@@ -57,6 +59,11 @@ contract Exchange {
 
     function depositMoney() public payable returns (uint256) {
         balances[msg.sender] += msg.value;
+
+        if (!existsAddress(msg.sender)) {
+            numberOfAddress += 1;
+            addressFromBalances.push(msg.sender);
+        }
 
         emit Deposited(msg.sender, msg.value);
 
@@ -83,7 +90,7 @@ contract Exchange {
         address receiver,
         address sender,
         uint256 amount
-    ) public payable returns (bool) {
+    ) public returns (bool) {
         require(balances[sender] >= amount, "Balance not sufficient");
 
         balances[sender] -= amount;
@@ -110,13 +117,13 @@ contract Exchange {
         return orderIndex - 1;
     }
 
-    function compareAssets(string memory asset1, string memory asset2)
+    function compareStrings(string memory _string1, string memory _string2)
         public
         pure
         returns (bool)
     {
-        return (keccak256(abi.encodePacked((asset1))) ==
-            keccak256(abi.encodePacked((asset2))));
+        return (keccak256(abi.encodePacked((_string1))) ==
+            keccak256(abi.encodePacked((_string2))));
     }
 
     function createOrder(
@@ -150,7 +157,7 @@ contract Exchange {
         uint256 value,
         uint256 numberOfShares,
         uint256 saleOrderIndex,
-        uint256 purchaseOrderIndex
+        uint256 purchasedOrderIndex
     ) public view returns (Transaction memory) {
         return
             Transaction({
@@ -162,7 +169,7 @@ contract Exchange {
                 createdAt: block.timestamp, // require view-type function,
                 numberOfShares: numberOfShares,
                 saleOrderIndex: saleOrderIndex,
-                purchaseOrderIndex: purchaseOrderIndex
+                purchasedOrderIndex: purchasedOrderIndex
             });
     }
 
@@ -194,7 +201,37 @@ contract Exchange {
 
     function existsAsset(string memory asset) public view returns (bool) {
         for (uint256 i = 0; i < assets.length; i++) {
-            if (compareAssets(assets[i], asset)) {
+            if (compareStrings(assets[i], asset)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function toString(address account) public pure returns (string memory) {
+        return toString(abi.encodePacked(account));
+    }
+
+    function toString(bytes memory data) public pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+
+        bytes memory str = new bytes(2 + data.length * 2);
+        str[0] = "0";
+        str[1] = "x";
+        for (uint256 i = 0; i < data.length; i++) {
+            str[2 + i * 2] = alphabet[uint256(uint8(data[i] >> 4))];
+            str[3 + i * 2] = alphabet[uint256(uint8(data[i] & 0x0f))];
+        }
+        return string(str);
+    }
+
+    function existsAddress(address _address) public view returns (bool) {
+        for (uint256 i = 0; i < addressFromBalances.length; i++) {
+            string memory address1 = toString(addressFromBalances[i]);
+            string memory address2 = toString(_address);
+
+            if (compareStrings(address1, address2)) {
                 return true;
             }
         }
@@ -377,6 +414,14 @@ contract Exchange {
         return order;
     }
 
+    function returnAddressesFromBalances()
+        public
+        view
+        returns (address[] memory)
+    {
+        return addressFromBalances;
+    }
+
     function returnSaleOrders(string memory asset)
         public
         view
@@ -421,6 +466,114 @@ contract Exchange {
         }
 
         return _orders;
+    }
+
+    function checkIfOrdersIsCompatible(
+        Order memory saleOrder,
+        Order memory purchasedOrder
+    ) private view returns (bool) {
+        return
+            saleOrder.isSale &&
+            (!purchasedOrder.isSale) &&
+            saleOrder.value == purchasedOrder.value &&
+            !checkTransactionConflict(
+                saleOrder.acceptsFragmenting,
+                purchasedOrder.acceptsFragmenting,
+                saleOrder.numberOfShares > purchasedOrder.numberOfShares,
+                saleOrder.numberOfShares != purchasedOrder.numberOfShares
+            ) &&
+            returnOrderByOrderIndex(saleOrder.index).isActive &&
+            returnOrderByOrderIndex(purchasedOrder.index).isActive;
+    }
+
+    function realizeOperationOfCreationOfTransactionInAllAsset(
+        string memory asset
+    ) public returns (bool) {
+        Order[] memory saleOrders = returnSaleOrders(asset);
+        Order[] memory purchasedOrders = returnPurchasedOrders(asset);
+
+        for (
+            uint256 saleOrderIndex = 0;
+            saleOrders.length > saleOrderIndex;
+            ++saleOrderIndex
+        ) {
+            for (
+                uint256 purchasedOrderIndex = 0;
+                purchasedOrders.length > purchasedOrderIndex;
+                ++purchasedOrderIndex
+            ) {
+                Order memory saleOrder = saleOrders[saleOrderIndex];
+                Order memory purchasedOrder = purchasedOrders[
+                    purchasedOrderIndex
+                ];
+
+                if (checkIfOrdersIsCompatible(saleOrder, purchasedOrder)) {
+                    bool saleOrderIsBigger = saleOrder.numberOfShares >
+                        purchasedOrder.numberOfShares;
+                    bool purchasedOrderIsBigger = purchasedOrder
+                        .numberOfShares > saleOrder.numberOfShares;
+
+                    uint256 minimunOfShares = saleOrderIsBigger
+                        ? purchasedOrder.numberOfShares
+                        : saleOrder.numberOfShares;
+
+                    sendMoney(
+                        purchasedOrder.userAddress,
+                        saleOrder.userAddress,
+                        saleOrder.value
+                    );
+
+                    Transaction memory transaction = createTransaction(
+                        saleOrder.userAddress,
+                        purchasedOrder.userAddress,
+                        asset,
+                        saleOrder.value,
+                        minimunOfShares,
+                        saleOrderIndex,
+                        purchasedOrderIndex
+                    );
+
+                    addTransaction(transaction);
+
+                    if (saleOrderIsBigger) {
+                        realizeOperationOfCreationOfOrder(
+                            saleOrder.isSale,
+                            saleOrder.userAddress,
+                            saleOrder.asset,
+                            saleOrder.value,
+                            saleOrder.numberOfShares - minimunOfShares,
+                            saleOrder.acceptsFragmenting,
+                            saleOrder.isPassive
+                        );
+                    }
+
+                    if (purchasedOrderIsBigger) {
+                        realizeOperationOfCreationOfOrder(
+                            purchasedOrder.isSale,
+                            purchasedOrder.userAddress,
+                            purchasedOrder.asset,
+                            purchasedOrder.value,
+                            purchasedOrder.numberOfShares - minimunOfShares,
+                            purchasedOrder.acceptsFragmenting,
+                            purchasedOrder.isPassive
+                        );
+                    }
+
+                    uint256 saleOrderPosition = returnPositionOfOrderInArray(
+                        saleOrder.index
+                    );
+                    uint256 purchasedOrderPosition = returnPositionOfOrderInArray(
+                            purchasedOrder.index
+                        );
+
+                    orders[saleOrderPosition].isActive = false;
+                    orders[purchasedOrderPosition].isActive = false;
+
+                    numberOfSaleOrdersByAssets[asset] -= 1;
+                    numberOfPurchasedOrdersByAssets[asset] -= 1;
+                }
+            }
+        }
     }
 
     function realizeOperationOfCreationOfTransaction(

@@ -5,6 +5,30 @@ const {
 } = require('./utils');
 const { expect } = require('chai');
 const { testsData } = require('./data');
+const { ethers, waffle } = require('hardhat');
+const provider = waffle.provider;
+
+async function getBalancesFromAddress(accounts) {
+  console.log();
+
+  for (const account of accounts) {
+    const balance0ETH = await provider.getBalance(account.address);
+
+    console.log(account.address, '\t', +balance0ETH);
+  }
+
+  console.log();
+}
+
+function getAddress(accounts, address) {
+  for (const account of accounts) {
+    if (account.address === address) {
+      return account;
+    }
+  }
+
+  return null;
+}
 
 for (const data of testsData) {
   describe(data.testName, () => {
@@ -38,6 +62,21 @@ for (const data of testsData) {
         this.saleOrders
       );
       console.log();
+
+      // await getBalancesFromAddress(this.accounts);
+
+      // const addressesFromBalances =
+      //   await this.exchange.returnAddressesFromBalances();
+
+      // for (const _address of addressesFromBalances) {
+      //   const _addressAsAddress = getAddress(this.accounts, _address);
+
+      //   const balance0ETH = await this.exchange
+      //     .connect(_addressAsAddress)
+      //     .getBalance();
+
+      //   console.log(_address, '\t', +balance0ETH);
+      // }
     });
 
     afterEach(async () => {
@@ -49,6 +88,23 @@ for (const data of testsData) {
         this.saleOrders
       );
       console.log();
+
+      // await getBalancesFromAddress(this.accounts);
+
+      // const addressesFromBalances =
+      //   await this.exchange.returnAddressesFromBalances();
+
+      // console.log();
+      // for (const _address of addressesFromBalances) {
+      //   const _addressAsAddress = getAddress(this.accounts, _address);
+
+      //   const balance0ETH = await this.exchange
+      //     .connect(_addressAsAddress)
+      //     .getBalance();
+
+      //   console.log(_address, '\t', +balance0ETH);
+      // }
+      // console.log();
     });
 
     it('should be orders default', async () => {
@@ -71,19 +127,29 @@ for (const data of testsData) {
           value: data.buyers[i].value,
           numberOfShares: data.buyers[i].numberOfShares,
           acceptsFragmenting: data.buyers[i].acceptsFragmenting,
-          isPassive: false,
+          isPassive: data.buyers[i].isPassive,
         };
 
         const balanceBefore = await this.exchange.getSmartContractBalance();
 
         await this.exchange.connect(this.accounts[i + 1]).depositMoney({
-          value: ethers.utils.formatUnits(String(data.buyers[i].value), 'wei'),
+          value: ethers.utils.formatUnits(
+            String(
+              order.isPassive
+                ? Math.ceil(order.value * 1.01)
+                : Math.ceil(order.value * 1.02)
+            ),
+            'wei'
+          ),
         });
 
         const balanceAfter = await this.exchange.getSmartContractBalance();
 
         expect(convertToNumber(balanceAfter)).to.equal(
-          convertToNumber(balanceBefore) + data.sellers[i].value
+          convertToNumber(balanceBefore) +
+            (order.isPassive
+              ? Math.ceil(order.value * 1.01)
+              : Math.ceil(order.value * 1.02))
         );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
@@ -133,7 +199,7 @@ for (const data of testsData) {
         const order = {
           index: this.saleOrders.length + 1,
           isSale: data.sellers[i].isSale,
-          userAddress: this.accounts[i + 1].address,
+          userAddress: this.accounts[2].address,
           asset: this.asset,
           value: data.sellers[i].value,
           numberOfShares: data.sellers[i].numberOfShares,
@@ -145,14 +211,24 @@ for (const data of testsData) {
 
         const balanceBefore = await this.exchange.getSmartContractBalance();
 
-        await this.exchange.connect(this.accounts[i + 1]).depositMoney({
-          value: ethers.utils.formatUnits(String(data.sellers[i].value), 'wei'),
+        await this.exchange.connect(this.accounts[2]).depositMoney({
+          value: ethers.utils.formatUnits(
+            String(
+              order.isPassive
+                ? Math.ceil(order.value * 1.01)
+                : Math.ceil(order.value * 1.02)
+            ),
+            'wei'
+          ),
         });
 
         const balanceAfter = await this.exchange.getSmartContractBalance();
 
         expect(convertToNumber(balanceAfter)).to.equal(
-          convertToNumber(balanceBefore) + data.sellers[i].value
+          convertToNumber(balanceBefore) +
+            (order.isPassive
+              ? Math.ceil(order.value * 1.01)
+              : Math.ceil(order.value * 1.02))
         );
 
         await this.exchange.realizeOperationOfCreationOfOrder(
@@ -207,22 +283,30 @@ for (const data of testsData) {
         );
         expect(this.transactions.length).to.equal(0);
 
-        for (const purchasedOrder of this.purchasedOrders) {
+        // await this.exchange.realizeOperationOfCreationOfTransactionInAllAsset(
+        //   this.asset
+        // );
+
+        for (const saleOrder of this.saleOrders) {
           await this.exchange.realizeOperationOfCreationOfTransaction(
             this.asset,
-            purchasedOrder
+            saleOrder
           );
         }
 
         this.transactions = await this.exchange.returnTransactions();
-        this.purchasedOrders = await this.exchange.returnPurchasedOrders(
-          this.asset
-        );
 
         expect(this.transactions.length > 0).to.equal(
           data.shouldCreateTransaction,
           'should create transaction'
         );
+
+        this.purchasedOrders = await this.exchange.returnPurchasedOrders(
+          this.asset
+        );
+        this.saleOrders = await this.exchange
+          .connect(this.accounts[0])
+          .returnSaleOrders('ABC123');
         expect(this.transactions.length).to.equal(
           data.finalOrders.transactions.length
         );
