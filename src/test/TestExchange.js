@@ -31,11 +31,11 @@ describe('Exchange', () => {
   });
 
   it('should compare assets', async () => {
-    const sameAssets = await this.exchange.compareAssets('PETRO', 'PETRO');
+    const sameAssets = await this.exchange.compareStrings('PETRO', 'PETRO');
 
     expect(sameAssets).to.equal(true);
 
-    const differentAssets = await this.exchange.compareAssets('PETRO', 'VALE');
+    const differentAssets = await this.exchange.compareStrings('PETRO', 'VALE');
 
     expect(differentAssets).to.equal(false);
   });
@@ -78,7 +78,7 @@ describe('Exchange', () => {
       value: 22,
       numberOfShares: 1,
       saleOrderIndex: 4,
-      purchaseOrderIndex: 3,
+      purchasedOrderIndex: 3,
     };
 
     const transaction = await this.exchange.createTransaction(
@@ -88,7 +88,7 @@ describe('Exchange', () => {
       transactionData.value,
       transactionData.numberOfShares,
       transactionData.saleOrderIndex,
-      transactionData.purchaseOrderIndex
+      transactionData.purchasedOrderIndex
     );
 
     expect(transactionData.seller).to.equal(transaction.seller);
@@ -97,8 +97,8 @@ describe('Exchange', () => {
     expect(transactionData.value).to.equal(transaction.value);
     expect(transactionData.numberOfShares).to.equal(transaction.numberOfShares);
     expect(transactionData.saleOrderIndex).to.equal(transaction.saleOrderIndex);
-    expect(transactionData.purchaseOrderIndex).to.equal(
-      transaction.purchaseOrderIndex
+    expect(transactionData.purchasedOrderIndex).to.equal(
+      transaction.purchasedOrderIndex
     );
   });
 

@@ -70,7 +70,7 @@ contract Exchange {
         return balances[msg.sender];
     }
 
-    function withdraw(uint256 amount) private onlyOwner {
+    function withdraw(uint256 amount) public onlyOwner {
         require(balances[msg.sender] >= amount, "Balance not sufficient");
 
         balances[msg.sender] -= amount;
@@ -90,15 +90,13 @@ contract Exchange {
         address receiver,
         address sender,
         uint256 amount
-    ) public returns (bool) {
+    ) private returns (bool) {
         require(balances[sender] >= amount, "Balance not sufficient");
 
         balances[sender] -= amount;
+        balances[receiver] += amount;
 
-        if (receiver != owner) {
-            balances[receiver] += amount;
-            payable(receiver).transfer(amount);
-        }
+        payable(receiver).transfer(amount);
     }
 
     function returnOrderByOrderIndex(uint256 orderIndex)
