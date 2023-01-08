@@ -51,7 +51,7 @@ contract Exchange {
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "this is not the owner");
+        require(msg.sender == owner, "This is not the owner");
         _; // it means run the code.
     }
 
