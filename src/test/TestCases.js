@@ -62,21 +62,6 @@ for (const data of testsData) {
         this.saleOrders
       );
       console.log();
-
-      // await getBalancesFromAddress(this.accounts);
-
-      // const addressesFromBalances =
-      //   await this.exchange.returnAddressesFromBalances();
-
-      // for (const _address of addressesFromBalances) {
-      //   const _addressAsAddress = getAddress(this.accounts, _address);
-
-      //   const balance0ETH = await this.exchange
-      //     .connect(_addressAsAddress)
-      //     .getBalance();
-
-      //   console.log(_address, '\t', +balance0ETH);
-      // }
     });
 
     afterEach(async () => {
@@ -88,23 +73,6 @@ for (const data of testsData) {
         this.saleOrders
       );
       console.log();
-
-      // await getBalancesFromAddress(this.accounts);
-
-      // const addressesFromBalances =
-      //   await this.exchange.returnAddressesFromBalances();
-
-      // console.log();
-      // for (const _address of addressesFromBalances) {
-      //   const _addressAsAddress = getAddress(this.accounts, _address);
-
-      //   const balance0ETH = await this.exchange
-      //     .connect(_addressAsAddress)
-      //     .getBalance();
-
-      //   console.log(_address, '\t', +balance0ETH);
-      // }
-      // console.log();
     });
 
     it('should be orders default', async () => {
@@ -282,10 +250,6 @@ for (const data of testsData) {
           this.initialNumberOfSaleOrders + data.sellers.length
         );
         expect(this.transactions.length).to.equal(0);
-
-        // await this.exchange.realizeOperationOfCreationOfTransactionInAllAsset(
-        //   this.asset
-        // );
 
         for (const saleOrder of this.saleOrders) {
           await this.exchange.realizeOperationOfCreationOfTransaction(
